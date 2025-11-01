@@ -5,7 +5,7 @@ use yule_log::model::msg::UlogMessage;
 
 #[test]
 fn test_sub_allow_list() -> Result<(), Box<dyn std::error::Error>> {
-    let reader = BufReader::new(File::open("../core/test_data/input/sample_log_small.ulg")?);
+    let reader = BufReader::new(File::open("fixtures/test_data/input/sample_log_small.ulg")?);
 
     let stream = ULogParserBuilder::new(reader)
         .set_subscription_allow_list([

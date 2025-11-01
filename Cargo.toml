@@ -1,18 +1,14 @@
 [workspace]
-resolver = "2"
-members = [
-    "core",
-    "macros",
-    "integration_tests"
-]
+resolver = "3"
+members = ["crates/*", "tests"]
 
 [workspace.package]
 version = "0.3.3"
 edition = "2021"
 
 [workspace.dependencies]
-yule_log = { version = "=0.3.3", path = "core" }
-yule_log_macros = { version = "=0.3.3", path = "macros" }
+yule_log = { version = "=0.3.3", path = "crates/core" }
+yule_log_macros = { version = "=0.3.3", path = "crates/macros" }
 
 byteorder = "1.5"
 thiserror = "2.0"

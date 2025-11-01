@@ -28,7 +28,9 @@ pub struct ActuatorOutputs {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let reader = BufReader::new(File::open("core/test_data/input/sample_log_small.ulg")?);
+    let reader = BufReader::new(File::open(
+        "tests/fixtures/test_data/input/sample_log_small.ulg",
+    )?);
 
     let stream = LoggedMessages::stream(reader)?;
 

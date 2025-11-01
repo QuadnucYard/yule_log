@@ -26,7 +26,7 @@ fn test_nonexistent_field_error() {
     }
 
     fn read_messages() -> Result<(), ULogError> {
-        let reader = BufReader::new(File::open("../core/test_data/input/sample_log_small.ulg")?);
+        let reader = BufReader::new(File::open("fixtures/test_data/input/sample_log_small.ulg")?);
         let stream = LoggedMessages::stream(reader)?;
 
         for msg_res in stream {
@@ -60,7 +60,7 @@ fn test_not_added_subscription_absent() {
     }
 
     let reader = BufReader::new(
-        File::open("../core/test_data/input/sample_log_small.ulg").expect("Unable to open file"),
+        File::open("fixtures/test_data/input/sample_log_small.ulg").expect("Unable to open file"),
     );
 
     let stream = LoggedMessages::stream(reader).unwrap();
@@ -93,7 +93,7 @@ fn test_non_existent_variant_add_subscription() {
     }
 
     let reader = BufReader::new(
-        File::open("../core/test_data/input/sample_log_small.ulg").expect("Unable to open file"),
+        File::open("fixtures/test_data/input/sample_log_small.ulg").expect("Unable to open file"),
     );
 
     const EXTRA_SUBSCR_NAME: &str = "vehicle_gps_position";
@@ -121,7 +121,7 @@ fn test_non_existent_variant_extend_subscriptions() {
     }
 
     let reader = BufReader::new(
-        File::open("../core/test_data/input/sample_log_small.ulg").expect("Unable to open file"),
+        File::open("fixtures/test_data/input/sample_log_small.ulg").expect("Unable to open file"),
     );
 
     let result = LoggedMessages::builder(reader)
@@ -148,7 +148,7 @@ fn test_nonexistent_variant_fwd_subscription() {
     }
 
     let reader = BufReader::new(
-        File::open("../core/test_data/input/sample_log_small.ulg").expect("Unable to open file"),
+        File::open("fixtures/test_data/input/sample_log_small.ulg").expect("Unable to open file"),
     );
     let result = LoggedMessages::builder(reader).forward_subscriptions(true);
 

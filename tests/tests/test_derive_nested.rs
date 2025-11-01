@@ -89,7 +89,7 @@ fn float_eq_nan(a: f64, b: f64) -> bool {
 
 #[test]
 fn test_derive_nested() -> Result<(), Box<dyn std::error::Error>> {
-    let reader = BufReader::new(File::open("../core/test_data/input/sample_log_small.ulg")?);
+    let reader = BufReader::new(File::open("fixtures/test_data/input/sample_log_small.ulg")?);
     let stream = LoggedMessages::stream(reader)?;
 
     let mut position_triplets = Vec::<PositionSetpointTriplet>::new();

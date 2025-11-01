@@ -10,7 +10,6 @@ pub mod message_buf;
 pub mod model;
 #[allow(clippy::redundant_else)]
 pub mod parser;
-mod roundtrip_test;
 mod tokenizer;
 
 #[cfg(feature = "macros")]

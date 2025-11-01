@@ -1,11 +1,10 @@
 [package]
-name = "integration_tests"
+name = "yule_log_tests"
 version = "0.3.3"
 edition = "2021"
 publish = false
 
 [dependencies]
-
-[dev-dependencies]
 yule_log = { workspace = true, features = ["macros"] }
+
 trybuild = "1.0"

@@ -34,7 +34,7 @@ pub struct ActuatorOutputs {
 #[test]
 #[allow(clippy::float_cmp)]
 fn test_derive() -> Result<(), Box<dyn std::error::Error>> {
-    let reader = BufReader::new(File::open("../core/test_data/input/sample_log_small.ulg")?);
+    let reader = BufReader::new(File::open("fixtures/test_data/input/sample_log_small.ulg")?);
     let stream = LoggedMessages::stream(reader)?;
 
     let mut vehicle_positions = Vec::<VehicleLocalPosition>::new();
@@ -140,7 +140,7 @@ fn test_add_subscription() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let reader =
-        BufReader::new(File::open("../core/test_data/input/sample_log_small.ulg").unwrap());
+        BufReader::new(File::open("fixtures/test_data/input/sample_log_small.ulg").unwrap());
 
     const EXTRA_SUBSCR_NAME: &str = "vehicle_gps_position";
 
@@ -206,7 +206,7 @@ fn test_fwd_subscriptions() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let reader =
-        BufReader::new(File::open("../core/test_data/input/sample_log_small.ulg").unwrap());
+        BufReader::new(File::open("fixtures/test_data/input/sample_log_small.ulg").unwrap());
 
     let stream = LoggedMessages::builder(reader)
         .forward_subscriptions(true)?
@@ -268,7 +268,7 @@ fn test_extend_subscriptions() -> Result<(), Box<dyn std::error::Error>> {
         pub z: f32,
     }
 
-    let reader = BufReader::new(File::open("../core/test_data/input/sample_log_small.ulg")?);
+    let reader = BufReader::new(File::open("fixtures/test_data/input/sample_log_small.ulg")?);
 
     let stream = LoggedMessages::builder(reader)
         .extend_subscriptions(["vehicle_gps_position", "vehicle_attitude"])?
@@ -361,7 +361,7 @@ fn readme_example() -> Result<(), Box<dyn std::error::Error>> {
         pub output: Vec<f32>,
     }
 
-    let reader = BufReader::new(File::open("../core/test_data/input/sample_log_small.ulg")?);
+    let reader = BufReader::new(File::open("fixtures/test_data/input/sample_log_small.ulg")?);
 
     let stream = LoggedMessages::stream(reader)?;
 
@@ -408,7 +408,7 @@ fn readme_builder_example() -> Result<(), Box<dyn std::error::Error>> {
         pub z: f32,
     }
 
-    let reader = BufReader::new(File::open("../core/test_data/input/sample_log_small.ulg")?);
+    let reader = BufReader::new(File::open("fixtures/test_data/input/sample_log_small.ulg")?);
 
     let stream = LoggedMessages::builder(reader)
         .add_subscription("vehicle_gps_position")? // Add extra subscription
