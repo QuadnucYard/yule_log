@@ -30,10 +30,7 @@ fn test_nonexistent_field_error() {
         let stream = LoggedMessages::stream(reader)?;
 
         for msg_res in stream {
-            let msg = msg_res?;
-            match msg {
-                _ => {}
-            }
+            let _msg = msg_res?;
         }
 
         Ok(())
@@ -99,7 +96,7 @@ fn test_non_existent_variant_add_subscription() {
         File::open("../core/test_data/input/sample_log_small.ulg").expect("Unable to open file"),
     );
 
-    const EXTRA_SUBSCR_NAME: &'static str = "vehicle_gps_position";
+    const EXTRA_SUBSCR_NAME: &str = "vehicle_gps_position";
 
     let result = LoggedMessages::builder(reader).add_subscription(EXTRA_SUBSCR_NAME);
 

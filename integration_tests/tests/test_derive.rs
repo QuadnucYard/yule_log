@@ -142,7 +142,7 @@ fn test_add_subscription() -> Result<(), Box<dyn std::error::Error>> {
     let reader =
         BufReader::new(File::open("../core/test_data/input/sample_log_small.ulg").unwrap());
 
-    const EXTRA_SUBSCR_NAME: &'static str = "vehicle_gps_position";
+    const EXTRA_SUBSCR_NAME: &str = "vehicle_gps_position";
 
     let stream = LoggedMessages::builder(reader)
         .add_subscription(EXTRA_SUBSCR_NAME)?

@@ -23,7 +23,7 @@ use crate::tokenizer::TokenList;
 pub struct ULogParser<R: Read> {
     state: State,
     file_header: Option<FileHeader>,
-    overridden_params: HashSet<String>,
+    _overridden_params: HashSet<String>,
     pub formats: HashMap<String, def::Format>,
     subscriptions: HashMap<u16, msg::Subscription>,
     message_name_with_multi_id: HashSet<String>,
@@ -36,18 +36,10 @@ pub struct ULogParser<R: Read> {
     _phantom: PhantomData<R>,
 }
 
+#[derive(Default)]
 pub struct SubscriptionFilter {
     allowed_subscription_names: Option<HashSet<String>>,
     allowed_subscription_ids: Option<HashSet<u16>>,
-}
-
-impl Default for SubscriptionFilter {
-    fn default() -> Self {
-        Self {
-            allowed_subscription_names: None,
-            allowed_subscription_ids: None,
-        }
-    }
 }
 
 impl SubscriptionFilter {
@@ -109,7 +101,7 @@ impl<R: Read> ULogParser<R> {
         Ok(ULogParser {
             state: State::HEADER,
             file_header: None,
-            overridden_params: HashSet::new(),
+            _overridden_params: HashSet::new(),
             formats: HashMap::new(),
             subscriptions: HashMap::new(),
             message_name_with_multi_id: HashSet::new(),
@@ -220,7 +212,7 @@ impl<R: Read> ULogParser<R> {
                     }
                     UlogMessage::AddSubscription(ref sub) => {
                         self.subscriptions.insert(sub.msg_id, sub.clone());
-                        self.subscription_filter.update_ids(&sub);
+                        self.subscription_filter.update_ids(sub);
 
                         if sub.multi_id > 0 {
                             self.message_name_with_multi_id
@@ -241,7 +233,7 @@ impl<R: Read> ULogParser<R> {
                 match msg {
                     UlogMessage::AddSubscription(ref sub) => {
                         self.subscriptions.insert(sub.msg_id, sub.clone());
-                        self.subscription_filter.update_ids(&sub);
+                        self.subscription_filter.update_ids(sub);
 
                         if sub.multi_id > 0 {
                             self.message_name_with_multi_id
@@ -747,10 +739,11 @@ impl<R: Read> ULogParser<R> {
             return Err(ULogError::UnknownIncompatBits);
         }
 
-        let mut appended_data_offsets: [u64; 3] = [0, 0, 0];
-        for i in 0..3 {
-            appended_data_offsets[i] = message_buf.take_u64()?;
-        }
+        let appended_data_offsets = [
+            message_buf.take_u64()?,
+            message_buf.take_u64()?,
+            message_buf.take_u64()?,
+        ];
 
         Ok(FlagBits {
             compat_flags,
@@ -941,6 +934,22 @@ impl From<ULogMessageType> for u8 {
     }
 }
 
+impl LoggedData {
+    pub fn filter_fields(&mut self, include_timestamp: bool, include_padding: bool) {
+        self.data.fields.retain(|field| {
+            if field.name == "timestamp" {
+                return include_timestamp;
+            }
+
+            if field.name.starts_with("_padding") {
+                return include_padding;
+            }
+
+            true
+        });
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1009,21 +1018,5 @@ mod tests {
         println!("Emitted bytes: {:?}", emitted_bytes);
 
         assert_eq!(emitted_bytes, input_bytes);
-    }
-}
-
-impl LoggedData {
-    pub fn filter_fields(&mut self, include_timestamp: bool, include_padding: bool) {
-        self.data.fields.retain(|field| {
-            if field.name == "timestamp" {
-                return include_timestamp;
-            }
-
-            if field.name.starts_with("_padding") {
-                return include_padding;
-            }
-
-            true
-        });
     }
 }

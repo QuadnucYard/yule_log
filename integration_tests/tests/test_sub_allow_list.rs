@@ -33,8 +33,8 @@ fn test_sub_allow_list() -> Result<(), Box<dyn std::error::Error>> {
 
     for msg_res in stream {
         let msg = msg_res?;
-        match msg {
-            UlogMessage::LoggedData(data) => match data.data.name.as_str() {
+        if let UlogMessage::LoggedData(data) = msg {
+            match data.data.name.as_str() {
                 "vehicle_local_position" => {
                     flags.pos_seen = true;
                 }
@@ -47,8 +47,7 @@ fn test_sub_allow_list() -> Result<(), Box<dyn std::error::Error>> {
                 _ => {
                     flags.other_seen = true;
                 }
-            },
-            _ => {}
+            }
         }
 
         if flags.all_seen() {

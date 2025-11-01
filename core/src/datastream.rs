@@ -237,6 +237,7 @@ mod tests {
                 .to_string();
             let length = datastream.read_u32()? as usize;
 
+            #[allow(clippy::bool_assert_comparison)]
             match type_name.as_str() {
                 "u8" => {
                     assert_eq!(length, mem::size_of::<u8>());

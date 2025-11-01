@@ -54,7 +54,7 @@ impl<R: Read> ULogParserBuilder<R> {
     ///
     /// # Parameters
     /// - `subs`: An iterable collection of string-like items representing the names of `LoggedData` messages
-    ///           to be parsed fully and returned.
+    ///   to be parsed fully and returned.
     #[must_use]
     pub fn set_subscription_allow_list<I, S>(mut self, subs: I) -> Self
     where

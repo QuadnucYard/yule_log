@@ -101,7 +101,7 @@ mod tests {
     }
 
     // Function to extract the relative path after the given component
-    fn extract_relative_path(file_path: &PathBuf, component: &str) -> String {
+    fn extract_relative_path(file_path: &Path, component: &str) -> String {
         if let Some(pos) = file_path.to_str().unwrap_or("").find(component) {
             // Add the component back as the prefix
             format!(
