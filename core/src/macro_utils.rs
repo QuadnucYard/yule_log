@@ -62,6 +62,25 @@ macro_rules! impl_fromfield_array {
                 }
             }
         }
+
+        impl<const N: usize> FromField for [$ty; N] {
+            fn from_field(field: &inst::Field) -> Result<Self, ULogError> {
+                match &field.value {
+                    inst::FieldValue::$variant(v) => v.as_slice().try_into().map_err(|_| {
+                        ULogError::TypeMismatch(format!(
+                            "Mismatched array length: expected {} but got {}",
+                            N,
+                            v.len()
+                        ))
+                    }),
+                    other => Err(ULogError::TypeMismatch(format!(
+                        "Expected Vec<{}> but got {:?}",
+                        stringify!($ty),
+                        other
+                    ))),
+                }
+            }
+        }
     };
 }
 
