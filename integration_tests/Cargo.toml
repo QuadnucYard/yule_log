@@ -7,5 +7,5 @@ publish = false
 [dependencies]
 
 [dev-dependencies]
-yule_log = { path = "../core", features = ["macros"], default-features = false }
+yule_log = { workspace = true, features = ["macros"] }
 trybuild = "1.0"

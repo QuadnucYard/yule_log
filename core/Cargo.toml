@@ -11,15 +11,14 @@ edition = "2021"
 publish = true
 
 [dependencies]
-byteorder = "1.5"
-thiserror = "1.0"
-log = "0.4"
-env_logger = "0.11"
-regex = "1.11"
-lazy_static = "1.5"
-serde = { version = "1.0", features = ["derive"] }
+yule_log_macros = { workspace = true, optional = true }
 
-yule_log_macros = { version = "=0.3.3", path = "../macros", optional = true }
+byteorder.workspace = true
+thiserror.workspace = true
+log.workspace = true
+env_logger.workspace = true
+regex.workspace = true
+serde.workspace = true
 
 # Enforce version lock between yule_log and yule_log_macros
 [target.'cfg(any())'.dependencies]

@@ -1,15 +1,14 @@
-use lazy_static::lazy_static;
 use regex::Regex;
-use std::collections::VecDeque;
+use std::{collections::VecDeque, sync::LazyLock};
 
 use crate::errors::ULogError;
 
-lazy_static! {
-    static ref TOKEN_REGEXP: Regex = Regex::new(
+static TOKEN_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
         r"(?P<identifier>[a-zA-Z_][a-zA-Z0-9_]*)|(?P<number>[0-9]+)|(?P<colon>:)|(?P<semicolon>;)|(?P<lbrace>\[)|(?P<rbrace>\])|(?P<whitespace>\s+)|(?P<unknown>.)"
     )
-    .unwrap();
-}
+    .unwrap()
+});
 
 #[derive(Debug)]
 pub struct TokenList<'a>(VecDeque<Token<'a>>);
