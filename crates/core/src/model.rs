@@ -1,6 +1,8 @@
 pub(crate) const MAGIC: [u8; 7] = [b'U', b'L', b'o', b'g', 0x01, 0x12, 0x35];
 
 pub mod msg {
+    use std::rc::Rc;
+
     use crate::errors::ULogError;
     use crate::model::MAGIC;
     use crate::model::{def, inst};
@@ -9,7 +11,7 @@ pub mod msg {
     pub enum UlogMessage {
         Header(FileHeader),
         FlagBits(FlagBits),
-        FormatDefinition(def::Format),
+        FormatDefinition(Rc<def::Format>),
         LoggedData(LoggedData),
         AddSubscription(Subscription),
         Info(Info),
@@ -235,6 +237,8 @@ pub mod def {
 /// For example, `inst::Format` and `inst::Field` represent concrete data objects, which
 /// are instances of the type definitions described by `def::Format` and `def::Field`.
 pub mod inst {
+    use std::rc::Rc;
+
     use crate::model::def::TypeExpr;
     use crate::model::{def, inst};
 
@@ -244,7 +248,7 @@ pub mod inst {
         pub name: String,
         pub fields: Vec<Field>,
         pub multi_id_index: Option<u8>,
-        pub def_format: def::Format,
+        pub def_format: Rc<def::Format>,
     }
 
     #[derive(Debug, Clone, PartialEq)]

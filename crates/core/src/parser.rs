@@ -2,6 +2,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::io::Read;
+use std::rc::Rc;
 
 use byteorder::{ByteOrder, LittleEndian};
 
@@ -22,7 +23,7 @@ use crate::tokenizer::TokenList;
 pub struct ULogParser<R: Read> {
     state: State,
     file_header: Option<FileHeader>,
-    pub formats: HashMap<String, def::Format>,
+    pub formats: HashMap<String, Rc<def::Format>>,
     subscriptions: HashMap<u16, msg::Subscription>,
     message_name_with_multi_id: HashSet<String>,
     subscription_filter: SubscriptionFilter,
@@ -124,7 +125,7 @@ impl<R: Read> ULogParser<R> {
         self.subscription_filter = SubscriptionFilter::new(set);
     }
 
-    pub fn get_format(&self, message_name: &str) -> Result<&def::Format, ULogError> {
+    pub fn get_format(&self, message_name: &str) -> Result<&Rc<def::Format>, ULogError> {
         match self.formats.get(message_name) {
             None => Err(UndefinedFormat(message_name.to_owned())),
             Some(format) => Ok(format),
@@ -405,7 +406,7 @@ impl<R: Read> ULogParser<R> {
 
     fn parse_data_message_sub(
         &self,
-        format: &def::Format,
+        format: &Rc<def::Format>,
         message_buf: &mut MessageBuf,
     ) -> Result<inst::Format, ULogError> {
         let mut fields: Vec<inst::Field> = Vec::with_capacity(format.fields.len());
@@ -594,7 +595,7 @@ impl<R: Read> ULogParser<R> {
             }
             ULogMessageType::FORMAT => {
                 let format = parse_format(message_buf)?;
-                Ok(msg::UlogMessage::FormatDefinition(format))
+                Ok(msg::UlogMessage::FormatDefinition(format.into()))
             }
             ULogMessageType::PARAMETER => {
                 let param = self.parse_parameter(message_buf)?;
@@ -879,7 +880,7 @@ mod tests {
 
     impl<R: std::io::Read> ULogParser<R> {
         pub fn insert_format(&mut self, message_name: &str, format: def::Format) {
-            self.formats.insert(message_name.to_string(), format);
+            self.formats.insert(message_name.to_string(), format.into());
         }
     }
 
