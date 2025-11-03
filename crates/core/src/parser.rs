@@ -3,6 +3,7 @@
 use std::collections::{HashMap, HashSet};
 use std::io::Read;
 use std::marker::PhantomData;
+use std::sync::Arc;
 
 use byteorder::{ByteOrder, LittleEndian};
 
@@ -24,7 +25,7 @@ pub struct ULogParser<R: Read> {
     state: State,
     file_header: Option<FileHeader>,
     _overridden_params: HashSet<String>,
-    pub formats: HashMap<String, def::Format>,
+    pub formats: HashMap<String, Arc<def::Format>>,
     subscriptions: HashMap<u16, msg::Subscription>,
     message_name_with_multi_id: HashSet<String>,
     subscription_filter: SubscriptionFilter,
@@ -129,17 +130,17 @@ impl<R: Read> ULogParser<R> {
         self.subscription_filter = SubscriptionFilter::new(set);
     }
 
-    pub fn get_format(&self, message_name: &str) -> Result<def::Format, ULogError> {
+    pub fn get_format(&self, message_name: &str) -> Result<&Arc<def::Format>, ULogError> {
         match self.formats.get(message_name) {
             None => Err(UndefinedFormat(message_name.to_owned())),
-            Some(format) => Ok(format.clone()),
+            Some(format) => Ok(format),
         }
     }
 
-    pub fn get_subscription(&self, msg_id: u16) -> Result<msg::Subscription, ULogError> {
+    pub fn get_subscription(&self, msg_id: u16) -> Result<&msg::Subscription, ULogError> {
         match self.subscriptions.get(&msg_id) {
             None => Err(UndefinedSubscription(msg_id)),
-            Some(sub) => Ok(sub.clone()),
+            Some(sub) => Ok(sub),
         }
     }
 
@@ -280,7 +281,7 @@ impl<R: Read> ULogParser<R> {
                 let msg_id = message_buf.take_u16()?;
                 if let Ok(sub) = self.get_subscription(msg_id) {
                     if self.subscription_filter.is_allowed(sub.msg_id) {
-                        let logged_data = self.parse_data_message(&sub, message_buf)?;
+                        let logged_data = self.parse_data_message(sub, message_buf)?;
 
                         return Ok(msg::UlogMessage::LoggedData(logged_data.clone()));
                     } else {
@@ -386,10 +387,10 @@ impl<R: Read> ULogParser<R> {
             return Err(ULogError::MissingTimestamp);
         }
 
-        let mut data_format = self.parse_data_message_sub(&format, &mut message_buf)?;
+        let mut data_format = self.parse_data_message_sub(format, &mut message_buf)?;
 
         if self.message_name_with_multi_id.contains(&sub.message_name) {
-            data_format.multi_id_index = Some(sub.multi_id);
+            Arc::make_mut(&mut data_format).multi_id_index = Some(sub.multi_id);
         }
 
         // ⚠️ The timestamp for this message is the value of the `timestamp` field from the top-level `data_format`
@@ -410,9 +411,9 @@ impl<R: Read> ULogParser<R> {
 
     fn parse_data_message_sub(
         &self,
-        format: &def::Format,
+        format: &Arc<def::Format>,
         message_buf: &mut MessageBuf,
-    ) -> Result<inst::Format, ULogError> {
+    ) -> Result<Arc<inst::Format>, ULogError> {
         let mut fields: Vec<inst::Field> = vec![];
         let mut timestamp: Option<u64> = None;
 
@@ -482,7 +483,8 @@ impl<R: Read> ULogParser<R> {
             // We have omitted it here so it can be filled later on if required.
             multi_id_index: None,
             def_format: format.clone(),
-        })
+        }
+        .into())
     }
 
     fn parse_field_value(
@@ -546,8 +548,7 @@ impl<R: Read> ULogParser<R> {
                     OTHER(type_name) => {
                         let child_format = &self.get_format(type_name)?;
                         Ok(inst::FieldValue::ScalarOther(
-                            self.parse_data_message_sub(child_format, message_buf)?
-                                .into(),
+                            self.parse_data_message_sub(child_format, message_buf)?,
                         ))
                     }
                 }
@@ -675,7 +676,7 @@ impl<R: Read> ULogParser<R> {
             }
             ULogMessageType::FORMAT => {
                 let format = parse_format(message_buf)?;
-                Ok(msg::UlogMessage::FormatDefinition(format))
+                Ok(msg::UlogMessage::FormatDefinition(format.into()))
             }
             ULogMessageType::PARAMETER => {
                 let param = self.parse_parameter(message_buf)?;
@@ -938,7 +939,8 @@ impl From<ULogMessageType> for u8 {
 
 impl LoggedData {
     pub fn filter_fields(&mut self, include_timestamp: bool, include_padding: bool) {
-        self.data.fields.retain(|field| {
+        // todo: arc
+        Arc::make_mut(&mut self.data).fields.retain(|field| {
             if field.name == "timestamp" {
                 return include_timestamp;
             }
@@ -960,7 +962,7 @@ mod tests {
 
     impl<R: std::io::Read> ULogParser<R> {
         pub fn insert_format(&mut self, message_name: &str, format: def::Format) {
-            self.formats.insert(message_name.to_string(), format);
+            self.formats.insert(message_name.to_string(), format.into());
         }
     }
 

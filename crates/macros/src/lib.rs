@@ -406,7 +406,11 @@ pub fn derive_logged_enum(input: TokenStream) -> TokenStream {
     // Filter out forward_other variant if present
     let filtered_variants: Vec<_> = variant_info
         .iter()
-        .filter(|(var, _)| Some(var.clone()) != forward_other_variant_ident)
+        .filter(|(var, _)| {
+            forward_other_variant_ident
+                .as_ref()
+                .is_none_or(|other| *var != *other)
+        })
         .collect();
 
     let accessor_enum_name = Ident::new(

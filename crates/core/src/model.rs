@@ -1,6 +1,8 @@
 pub(crate) const MAGIC: [u8; 7] = [b'U', b'L', b'o', b'g', 0x01, 0x12, 0x35];
 
 pub mod msg {
+    use std::sync::Arc;
+
     use crate::errors::ULogError;
     use crate::model::MAGIC;
     use crate::model::{def, inst};
@@ -9,7 +11,7 @@ pub mod msg {
     pub enum UlogMessage {
         Header(FileHeader),
         FlagBits(FlagBits),
-        FormatDefinition(def::Format),
+        FormatDefinition(Arc<def::Format>),
         LoggedData(LoggedData),
         AddSubscription(Subscription),
         Info(Info),
@@ -151,7 +153,7 @@ pub mod msg {
     pub struct LoggedData {
         pub timestamp: u64,
         pub msg_id: u16,
-        pub data: inst::Format,
+        pub data: Arc<inst::Format>,
     }
 
     #[derive(Debug, Copy, Clone)]
@@ -237,6 +239,8 @@ pub mod def {
 /// For example, `inst::Format` and `inst::Field` represent concrete data objects, which
 /// are instances of the type definitions described by `def::Format` and `def::Field`.
 pub mod inst {
+    use std::sync::Arc;
+
     use crate::model::def::TypeExpr;
     use crate::model::{def, inst};
 
@@ -246,7 +250,7 @@ pub mod inst {
         pub name: String,
         pub fields: Vec<Field>,
         pub multi_id_index: Option<u8>,
-        pub def_format: def::Format,
+        pub def_format: Arc<def::Format>,
     }
 
     #[derive(Debug, Clone, PartialEq)]
@@ -277,7 +281,7 @@ pub mod inst {
         ScalarF64(f64),
         ScalarBool(bool),
         ScalarChar(char),
-        ScalarOther(Box<inst::Format>),
+        ScalarOther(Arc<inst::Format>),
 
         // Typed arrays
         ArrayU8(Vec<u8>),
@@ -292,7 +296,7 @@ pub mod inst {
         ArrayF64(Vec<f64>),
         ArrayBool(Vec<bool>),
         ArrayChar(Vec<char>),
-        ArrayOther(Vec<inst::Format>),
+        ArrayOther(Vec<Arc<inst::Format>>),
     }
 }
 
@@ -312,7 +316,7 @@ impl inst::FieldValue {
             ArrayF64(v) => Some(v.iter().map(|&x| ScalarF64(x)).collect()),
             ArrayBool(v) => Some(v.iter().map(|&x| ScalarBool(x)).collect()),
             ArrayChar(v) => Some(v.iter().map(|&x| ScalarChar(x)).collect()),
-            ArrayOther(v) => Some(v.iter().map(|x| ScalarOther(x.clone().into())).collect()),
+            ArrayOther(v) => Some(v.iter().map(|x| ScalarOther(x.clone())).collect()),
             _ => None, // not an array
         }
     }

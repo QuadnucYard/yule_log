@@ -14,7 +14,7 @@ A streaming [ULOG](https://docs.px4.io/main/en/dev_log/ulog_file_format.html) pa
 
 The `macros` feature provides a serde-like experience, allowing ULOG data to be mapped directly into your own structs.
 
-With this feature, there is no need to manually track subscription names, msg_ids, or field indices, the macros handle all 
+With this feature, there is no need to manually track subscription names, msg_ids, or field indices, the macros handle all
 of that for you automatically.  The stream-oriented nature of the underlying parser is fully preserved.
 
 ### User guide
@@ -27,7 +27,7 @@ yule_log = { version="0.3", features = ["macros"] }
 
 #### 2. Map subscriptions to structs
 
-Define one struct for each ULOG subscription you want to map, 
+Define one struct for each ULOG subscription you want to map,
 and annotate it with: `#[derive(ULogData)]`.
 
 Example:
@@ -44,9 +44,9 @@ Example:
 ```
 
 In most cases, no extra config is needed—just name your struct and fields to match the names used in the
-ULOG. Only include the fields you need. 
+ULOG. Only include the fields you need.
 
-The macros will infer the ULOG names by converting your struct and field names to snake case. 
+The macros will infer the ULOG names by converting your struct and field names to snake case.
 
 By default, struct fields will be validated
 against the ULOG file, and any missing fields will cause an error.  This can be overriden by making a field an `Option<T>`, as shown above for `extra_field`.
@@ -78,7 +78,7 @@ This enum will then become your interface to the data.
 
 #### 4. Iterate through mapped messages
 
-The derive macro will generate a `::stream()` method on your enum, allowing the 
+The derive macro will generate a `::stream()` method on your enum, allowing the
 messages to be easily retrieved.
 
 Full example:
@@ -128,7 +128,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                          v.timestamp, v.x, v.y, v.z);
             }
             LoggedMessages::ActuatorOutputs(a) => {
-                println!("ActuatorOutputs: {}: {:?}", 
+                println!("ActuatorOutputs: {}: {:?}",
                          a.timestamp, a.output);
             }
             LoggedMessages::Other(msg) => {
@@ -145,7 +145,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## 🔧 Builder Interface for Advanced Configuration
 
-By default, the `::stream()` method configures the parser to only yield messages that are mapped to enum variants; 
+By default, the `::stream()` method configures the parser to only yield messages that are mapped to enum variants;
 `LoggedData` and `AddSubscription` messages are handled internally and not visible to the caller.
 
 To override this default behaviour, the derive macro also generates a `::builder()` API for
@@ -154,7 +154,7 @@ your `LoggedMessages` enum, allowing you to:
 - Forward `LoggedData` messages not mapped to an enum variant.
 - Forward `AddSubscription` messages.
 
-💡It is recommended to only map the `LoggedData` messages you need, as this avoids 
+💡It is recommended to only map the `LoggedData` messages you need, as this avoids
 parsing of unmapped messages which improves performance. Unmapped `LoggedData` messages will
 are returned in raw form as `UlogMessage::Ignored`.
 
@@ -190,7 +190,7 @@ For those requiring complete control over the parsing process, the original low 
 Example:
 
 ```rust
-let reader = BufReader::new(File::open(ulog_path.clone())?);
+let reader = BufReader::new(File::open(ulog_path)?);
 
 let parser = ULogParserBuilder::new(reader)
     .include_header(true)
