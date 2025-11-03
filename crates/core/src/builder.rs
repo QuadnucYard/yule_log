@@ -1,5 +1,6 @@
-use std::collections::HashSet;
 use std::io::Read;
+
+use rustc_hash::FxHashSet;
 
 use crate::errors::ULogError;
 use crate::parser::ULogParser;
@@ -9,7 +10,7 @@ pub struct ULogParserBuilder<R> {
     include_header: bool,
     include_timestamp: bool,
     include_padding: bool,
-    allowed_subscription_names: Option<HashSet<String>>,
+    allowed_subscription_names: Option<FxHashSet<String>>,
 }
 
 impl<R: Read> ULogParserBuilder<R> {
@@ -61,8 +62,7 @@ impl<R: Read> ULogParserBuilder<R> {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        let set: HashSet<String> = subs.into_iter().map(|s| s.into()).collect();
-        self.allowed_subscription_names = Some(set);
+        self.allowed_subscription_names = Some(subs.into_iter().map(|s| s.into()).collect());
         self
     }
 

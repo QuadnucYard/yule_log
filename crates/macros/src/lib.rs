@@ -192,7 +192,7 @@ pub fn derive_logged_struct(input: TokenStream) -> TokenStream {
         });
 
         quote! {{
-            let map: std::collections::HashMap<yule_log::reexport::EcoString, usize> =
+            let map: yule_log::reexport::FxHashMap<yule_log::reexport::EcoString, usize> =
                 format.fields.iter().enumerate()
                     .map(|(i, f)| (f.name.clone(), i))
                     .collect();
@@ -610,7 +610,7 @@ pub fn derive_logged_enum(input: TokenStream) -> TokenStream {
 
             pub fn stream(self) -> Result<#hidden_struct_name<R>, yule_log::errors::ULogError> {
                 let mut result = #hidden_struct_name::new(self.reader)?;
-                result.extend_allow_list(self.extra_allow_list);
+                result.extend_allow_list(&self.extra_allow_list);
                 result.forward_subscriptions(self.forward_subscriptions);
                 Ok( result )
             }
@@ -621,7 +621,7 @@ pub fn derive_logged_enum(input: TokenStream) -> TokenStream {
         #[automatically_derived]
         struct #hidden_struct_name<R: std::io::Read> {
             parser: yule_log::parser::ULogParser<R>,
-            subs: std::collections::HashMap<u16, #accessor_enum_name>,
+            subs: yule_log::reexport::FxHashMap<u16, #accessor_enum_name>,
             forward_subscriptions: bool,
         }
 
@@ -635,17 +635,14 @@ pub fn derive_logged_enum(input: TokenStream) -> TokenStream {
                     .map_err(|e| yule_log::errors::ULogError::InternalError(e.to_string()))?;
 
                 // Set allow-list from all subscription names in user structs
-                let allowed_subs: std::collections::HashSet<String> =
-                    [ #( #subscription_idents.to_string() ),* ].into_iter().collect();
-
+                let allowed_subs = [ #( #subscription_idents.to_string() ),* ];
                 parser.set_subscription_allow_list(allowed_subs);
 
-                Ok(Self { parser, subs: std::collections::HashMap::new(), forward_subscriptions: false })
+                Ok(Self { parser, subs: Default::default(), forward_subscriptions: false })
             }
 
-            fn extend_allow_list(&mut self, extra_allow_list: Vec<String>) {
-                let mut allow: std::collections::HashSet<String> =
-                    [ #( #subscription_idents.to_string() ),* ].into_iter().collect();
+            fn extend_allow_list(&mut self, extra_allow_list: &[String]) {
+                let mut allow = vec![ #( #subscription_idents.to_string() ),* ];
                 allow.extend(extra_allow_list.iter().cloned());
                 self.parser.set_subscription_allow_list(allow);
             }

@@ -20,4 +20,5 @@ pub mod macro_utils;
 
 pub mod reexport {
     pub use ecow::EcoString;
+    pub use rustc_hash::{FxHashMap, FxHashSet};
 }

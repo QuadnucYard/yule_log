@@ -19,6 +19,7 @@ thiserror.workspace = true
 log.workspace = true
 nonmax.workspace = true
 regex.workspace = true
+rustc-hash.workspace = true
 serde = { workspace = true, optional = true }
 
 [features]
