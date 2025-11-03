@@ -1,6 +1,5 @@
 use crate::errors::ULogError;
 use crate::message_buf::MessageBuf;
-use crate::model::def;
 
 pub trait ParseFromBuf: Sized {
     fn parse_from_buf(buf: &mut MessageBuf) -> Result<Self, ULogError>;
@@ -67,10 +66,7 @@ impl ParseFromBuf for char {
     }
 }
 
-pub fn parse_data_field<T: ParseFromBuf>(
-    _field: &def::Field,
-    message_buf: &mut MessageBuf,
-) -> Result<T, ULogError> {
+pub fn parse_data_field<T: ParseFromBuf>(message_buf: &mut MessageBuf) -> Result<T, ULogError> {
     T::parse_from_buf(message_buf)
 }
 
@@ -87,4 +83,14 @@ where
         array.push(parse_element(message_buf)?);
     }
     Ok(array)
+}
+
+pub fn parse_primitive_array<T>(
+    array_size: usize,
+    message_buf: &mut MessageBuf,
+) -> Result<Vec<T>, ULogError>
+where
+    T: ParseFromBuf,
+{
+    parse_array(array_size, message_buf, T::parse_from_buf)
 }
