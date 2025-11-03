@@ -14,6 +14,7 @@ publish = true
 yule_log_macros = { workspace = true, optional = true }
 
 byteorder.workspace = true
+ecow.workspace = true
 thiserror.workspace = true
 log.workspace = true
 nonmax.workspace = true

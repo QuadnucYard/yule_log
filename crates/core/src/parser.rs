@@ -3,9 +3,11 @@
 use std::collections::{HashMap, HashSet};
 use std::io::Read;
 use std::marker::PhantomData;
+use std::str::FromStr;
 use std::sync::Arc;
 
 use byteorder::{ByteOrder, LittleEndian};
+use ecow::EcoString;
 
 use crate::datastream::DataStream;
 use crate::errors::ULogError;
@@ -25,9 +27,9 @@ pub struct ULogParser<R: Read> {
     state: State,
     file_header: Option<FileHeader>,
     _overridden_params: HashSet<String>,
-    pub formats: HashMap<String, Arc<def::Format>>,
+    pub formats: HashMap<EcoString, Arc<def::Format>>,
     subscriptions: HashMap<u16, msg::Subscription>,
-    message_name_with_multi_id: HashSet<String>,
+    message_name_with_multi_id: HashSet<EcoString>,
     subscription_filter: SubscriptionFilter,
     datastream: DataStream<R>,
     max_bytes_to_read: Option<usize>,
@@ -39,13 +41,13 @@ pub struct ULogParser<R: Read> {
 
 #[derive(Default)]
 pub struct SubscriptionFilter {
-    allowed_subscription_names: Option<HashSet<String>>,
+    allowed_subscription_names: Option<HashSet<EcoString>>,
     allowed_subscription_ids: Option<HashSet<u16>>,
 }
 
 impl SubscriptionFilter {
-    pub fn new(subscr_names: impl IntoIterator<Item = String>) -> Self {
-        let names: HashSet<String> = subscr_names.into_iter().collect::<HashSet<_>>();
+    pub fn new(subscr_names: impl IntoIterator<Item = impl Into<EcoString>>) -> Self {
+        let names = subscr_names.into_iter().map(Into::into).collect();
         Self {
             allowed_subscription_names: Some(names),
             allowed_subscription_ids: Some(HashSet::new()),
@@ -283,7 +285,7 @@ impl<R: Read> ULogParser<R> {
                     if self.subscription_filter.is_allowed(sub.msg_id) {
                         let logged_data = self.parse_data_message(sub, message_buf)?;
 
-                        return Ok(msg::UlogMessage::LoggedData(logged_data.clone()));
+                        return Ok(msg::UlogMessage::LoggedData(logged_data));
                     } else {
                         return Ok(UlogMessage::Ignored {
                             msg_type: message_type.into(),
@@ -348,7 +350,8 @@ impl<R: Read> ULogParser<R> {
         let multi_id = message_buf.take_u8()?;
         let msg_id = message_buf.take_u16()?;
 
-        let message_name = String::from_utf8(message_buf.into_remaining_bytes())?;
+        let message_name =
+            EcoString::from_str(str::from_utf8(message_buf.remaining_bytes())?).unwrap();
 
         // Force a lookup of the format and return an error if not found.
         let _format = self.get_format(&message_name)?;
@@ -356,7 +359,7 @@ impl<R: Read> ULogParser<R> {
         Ok(msg::Subscription {
             multi_id,
             msg_id,
-            message_name: message_name.clone(),
+            message_name,
         })
     }
 
@@ -672,8 +675,8 @@ impl<R: Read> ULogParser<R> {
 
     pub(crate) fn parse_info(&self, mut message_buf: MessageBuf) -> Result<msg::Info, ULogError> {
         let key_len = message_buf.take_u8()? as usize;
-        let raw_key = String::from_utf8(message_buf.advance(key_len)?.to_vec())?;
-        let mut tokens = TokenList::from_str(&raw_key);
+        let raw_key = str::from_utf8(message_buf.advance(key_len)?)?;
+        let mut tokens = TokenList::from_str(raw_key);
         let field = parse_field(&mut tokens)?;
 
         let value: inst::FieldValue = self.parse_field_value(&field, &mut message_buf)?;
@@ -693,8 +696,8 @@ impl<R: Read> ULogParser<R> {
     ) -> Result<msg::MultiInfo, ULogError> {
         let is_continued = message_buf.take_u8()? != 0;
         let key_len = message_buf.take_u8()? as usize;
-        let raw_key = String::from_utf8(message_buf.advance(key_len)?.to_vec())?;
-        let mut tokens = TokenList::from_str(&raw_key);
+        let raw_key = str::from_utf8(message_buf.advance(key_len)?)?;
+        let mut tokens = TokenList::from_str(raw_key);
         let field = parse_field(&mut tokens)?;
 
         let value: inst::FieldValue = self.parse_field_value(&field, &mut message_buf)?;
@@ -714,8 +717,8 @@ impl<R: Read> ULogParser<R> {
 
     fn parse_parameter(&self, mut message_buf: MessageBuf) -> Result<msg::Parameter, ULogError> {
         let key_len = message_buf.take_u8()? as usize;
-        let raw_key = String::from_utf8(message_buf.advance(key_len)?.to_vec())?;
-        let mut tokens = TokenList::from_str(&raw_key);
+        let raw_key = str::from_utf8(message_buf.advance(key_len)?)?;
+        let mut tokens = TokenList::from_str(raw_key);
         let field = parse_field(&mut tokens)?;
 
         if field.r#type.is_array() {
@@ -750,8 +753,8 @@ impl<R: Read> ULogParser<R> {
     ) -> Result<msg::DefaultParameter, ULogError> {
         let default_types = message_buf.take_u8()?; // read the default_types bitfield
         let key_len = message_buf.take_u8()? as usize;
-        let raw_key = String::from_utf8(message_buf.advance(key_len)?.to_vec())?;
-        let mut tokens = TokenList::from_str(&raw_key);
+        let raw_key = str::from_utf8(message_buf.advance(key_len)?)?;
+        let mut tokens = TokenList::from_str(raw_key);
         let field = parse_field(&mut tokens)?;
 
         if field.r#type.is_array() {
@@ -877,7 +880,7 @@ mod tests {
 
     impl<R: std::io::Read> ULogParser<R> {
         pub fn insert_format(&mut self, message_name: &str, format: def::Format) {
-            self.formats.insert(message_name.to_string(), format.into());
+            self.formats.insert(message_name.into(), format.into());
         }
     }
 
@@ -895,7 +898,7 @@ mod tests {
 
         println!(
             "re_emitted_bytes: {:?}",
-            String::from_utf8(emitted_bytes.clone()).unwrap()
+            str::from_utf8(&emitted_bytes).unwrap()
         );
 
         assert_eq!(emitted_bytes, input);
@@ -914,7 +917,7 @@ mod tests {
         parser.insert_format(
             "my_message",
             def::Format {
-                name: "".to_string(),
+                name: "".into(),
                 fields: vec![],
                 padding: 0,
             },

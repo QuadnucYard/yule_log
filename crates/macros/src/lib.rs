@@ -192,7 +192,7 @@ pub fn derive_logged_struct(input: TokenStream) -> TokenStream {
         });
 
         quote! {{
-            let map: std::collections::HashMap<String, usize> =
+            let map: std::collections::HashMap<yule_log::reexport::EcoString, usize> =
                 format.fields.iter().enumerate()
                     .map(|(i, f)| (f.name.clone(), i))
                     .collect();

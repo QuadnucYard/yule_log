@@ -130,7 +130,7 @@ impl<R: Read> DataStream<R> {
     pub fn read_string(&mut self, len: usize) -> Result<String, ULogError> {
         let mut buf = vec![0; len];
         self.read_exact(&mut buf)?;
-        String::from_utf8(buf).map_err(ULogError::Utf8)
+        Ok(String::from_utf8(buf)?)
     }
 }
 

@@ -105,6 +105,11 @@ impl MessageBuf {
         self.len() == 0
     }
 
+    /// Returns a slice of the remaining bytes in the buffer starting from the current index.
+    pub fn remaining_bytes(&self) -> &[u8] {
+        &self.buf[self.current_index..]
+    }
+
     /// Consumes the `MessageBuf` and returns the remaining bytes starting from the current index.
     ///
     /// After calling this method, the `MessageBuf` is invalidated and can no longer be used.
