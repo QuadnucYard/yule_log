@@ -5,9 +5,9 @@ use crate::tokenizer::Token;
 use crate::tokenizer::TokenList;
 
 pub(crate) fn parse_format(message_buf: MessageBuf) -> Result<def::Format, ULogError> {
-    let str_format = String::from_utf8(message_buf.into_remaining_bytes())?;
+    let str_format = str::from_utf8(message_buf.remaining_bytes())?;
 
-    let mut token_list = TokenList::from_str(&str_format);
+    let mut token_list = TokenList::from_str(str_format);
     log::trace!("token_list: {token_list:?}");
 
     let name = match token_list.consume_two()? {

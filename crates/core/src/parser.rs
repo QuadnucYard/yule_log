@@ -350,7 +350,7 @@ impl<R: Read> ULogParser<R> {
         Ok(msg::Subscription {
             multi_id,
             msg_id,
-            message_name: message_name.clone(),
+            message_name,
         })
     }
 
@@ -675,8 +675,8 @@ impl<R: Read> ULogParser<R> {
 
     pub(crate) fn parse_info(&self, mut message_buf: MessageBuf) -> Result<msg::Info, ULogError> {
         let key_len = message_buf.take_u8()? as usize;
-        let raw_key = String::from_utf8(message_buf.advance(key_len)?.to_vec())?;
-        let mut tokens = TokenList::from_str(&raw_key);
+        let raw_key = str::from_utf8(message_buf.advance(key_len)?)?;
+        let mut tokens = TokenList::from_str(raw_key);
         let field = parse_field(&mut tokens)?;
 
         let value: inst::FieldValue = self.parse_field_value(&field, &mut message_buf)?;
@@ -696,8 +696,8 @@ impl<R: Read> ULogParser<R> {
     ) -> Result<msg::MultiInfo, ULogError> {
         let is_continued = message_buf.take_u8()? != 0;
         let key_len = message_buf.take_u8()? as usize;
-        let raw_key = String::from_utf8(message_buf.advance(key_len)?.to_vec())?;
-        let mut tokens = TokenList::from_str(&raw_key);
+        let raw_key = str::from_utf8(message_buf.advance(key_len)?)?;
+        let mut tokens = TokenList::from_str(raw_key);
         let field = parse_field(&mut tokens)?;
 
         let value: inst::FieldValue = self.parse_field_value(&field, &mut message_buf)?;
@@ -717,8 +717,8 @@ impl<R: Read> ULogParser<R> {
 
     fn parse_parameter(&self, mut message_buf: MessageBuf) -> Result<msg::Parameter, ULogError> {
         let key_len = message_buf.take_u8()? as usize;
-        let raw_key = String::from_utf8(message_buf.advance(key_len)?.to_vec())?;
-        let mut tokens = TokenList::from_str(&raw_key);
+        let raw_key = str::from_utf8(message_buf.advance(key_len)?)?;
+        let mut tokens = TokenList::from_str(raw_key);
         let field = parse_field(&mut tokens)?;
 
         if field.r#type.is_array() {
@@ -753,8 +753,8 @@ impl<R: Read> ULogParser<R> {
     ) -> Result<msg::DefaultParameter, ULogError> {
         let default_types = message_buf.take_u8()?; // read the default_types bitfield
         let key_len = message_buf.take_u8()? as usize;
-        let raw_key = String::from_utf8(message_buf.advance(key_len)?.to_vec())?;
-        let mut tokens = TokenList::from_str(&raw_key);
+        let raw_key = str::from_utf8(message_buf.advance(key_len)?)?;
+        let mut tokens = TokenList::from_str(raw_key);
         let field = parse_field(&mut tokens)?;
 
         if field.r#type.is_array() {
@@ -897,7 +897,7 @@ mod tests {
 
         println!(
             "re_emitted_bytes: {:?}",
-            String::from_utf8(emitted_bytes.clone()).unwrap()
+            str::from_utf8(&emitted_bytes).unwrap()
         );
 
         assert_eq!(emitted_bytes, input);

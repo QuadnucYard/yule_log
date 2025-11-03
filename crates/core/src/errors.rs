@@ -1,4 +1,5 @@
 use std::io;
+use std::str::Utf8Error;
 use std::string::FromUtf8Error;
 
 use thiserror::Error;
@@ -9,7 +10,10 @@ pub enum ULogError {
     Io(#[from] io::Error),
 
     #[error("UTF-8 Decoding Error: {0}")]
-    Utf8(#[from] FromUtf8Error),
+    FromUtf8(#[from] FromUtf8Error),
+
+    #[error("UTF-8 Decoding Error: {0}")]
+    Utf8(#[from] Utf8Error),
 
     #[error("Unknown Parameter Type")]
     UnknownParameterType(String),
