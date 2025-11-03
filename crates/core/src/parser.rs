@@ -10,7 +10,7 @@ use byteorder::{ByteOrder, LittleEndian};
 use crate::datastream::DataStream;
 use crate::errors::ULogError;
 use crate::errors::ULogError::{UndefinedFormat, UndefinedSubscription};
-use crate::field_helpers::{parse_array, parse_data_field};
+use crate::field_helpers::{parse_array, parse_data_field, parse_typed_array};
 use crate::formats::{parse_field, parse_format};
 use crate::message_buf::MessageBuf;
 use crate::model::def::BaseType;
@@ -496,62 +496,26 @@ impl<R: Read> ULogParser<R> {
             None => {
                 // scalar
                 use def::BaseType::*;
-                match &field.r#type.base_type {
-                    UINT8 => Ok(inst::FieldValue::ScalarU8(parse_data_field::<u8>(
-                        field,
-                        message_buf,
-                    )?)),
-                    UINT16 => Ok(inst::FieldValue::ScalarU16(parse_data_field::<u16>(
-                        field,
-                        message_buf,
-                    )?)),
-                    UINT32 => Ok(inst::FieldValue::ScalarU32(parse_data_field::<u32>(
-                        field,
-                        message_buf,
-                    )?)),
-                    UINT64 => Ok(inst::FieldValue::ScalarU64(parse_data_field::<u64>(
-                        field,
-                        message_buf,
-                    )?)),
-                    INT8 => Ok(inst::FieldValue::ScalarI8(parse_data_field::<i8>(
-                        field,
-                        message_buf,
-                    )?)),
-                    INT16 => Ok(inst::FieldValue::ScalarI16(parse_data_field::<i16>(
-                        field,
-                        message_buf,
-                    )?)),
-                    INT32 => Ok(inst::FieldValue::ScalarI32(parse_data_field::<i32>(
-                        field,
-                        message_buf,
-                    )?)),
-                    INT64 => Ok(inst::FieldValue::ScalarI64(parse_data_field::<i64>(
-                        field,
-                        message_buf,
-                    )?)),
-                    FLOAT => Ok(inst::FieldValue::ScalarF32(parse_data_field::<f32>(
-                        field,
-                        message_buf,
-                    )?)),
-                    DOUBLE => Ok(inst::FieldValue::ScalarF64(parse_data_field::<f64>(
-                        field,
-                        message_buf,
-                    )?)),
-                    BOOL => Ok(inst::FieldValue::ScalarBool(parse_data_field::<bool>(
-                        field,
-                        message_buf,
-                    )?)),
-                    CHAR => Ok(inst::FieldValue::ScalarChar(parse_data_field::<char>(
-                        field,
-                        message_buf,
-                    )?)),
+                use inst::FieldValue::*;
+
+                Ok(match &field.r#type.base_type {
+                    UINT8 => ScalarU8(parse_data_field(field, message_buf)?),
+                    UINT16 => ScalarU16(parse_data_field(field, message_buf)?),
+                    UINT32 => ScalarU32(parse_data_field(field, message_buf)?),
+                    UINT64 => ScalarU64(parse_data_field(field, message_buf)?),
+                    INT8 => ScalarI8(parse_data_field(field, message_buf)?),
+                    INT16 => ScalarI16(parse_data_field(field, message_buf)?),
+                    INT32 => ScalarI32(parse_data_field(field, message_buf)?),
+                    INT64 => ScalarI64(parse_data_field(field, message_buf)?),
+                    FLOAT => ScalarF32(parse_data_field(field, message_buf)?),
+                    DOUBLE => ScalarF64(parse_data_field(field, message_buf)?),
+                    BOOL => ScalarBool(parse_data_field(field, message_buf)?),
+                    CHAR => ScalarChar(parse_data_field(field, message_buf)?),
                     OTHER(type_name) => {
                         let child_format = &self.get_format(type_name)?;
-                        Ok(inst::FieldValue::ScalarOther(
-                            self.parse_data_message_sub(child_format, message_buf)?,
-                        ))
+                        ScalarOther(self.parse_data_message_sub(child_format, message_buf)?)
                     }
-                }
+                })
             }
             Some(array_size) => self.parse_array_field(field, array_size.get(), message_buf),
         }
@@ -564,77 +528,28 @@ impl<R: Read> ULogParser<R> {
         message_buf: &mut MessageBuf,
     ) -> Result<inst::FieldValue, ULogError> {
         use def::BaseType::*;
+        use inst::FieldValue::*;
 
-        match &field.r#type.base_type {
-            UINT8 => Ok(inst::FieldValue::ArrayU8(parse_array(
-                array_size,
-                message_buf,
-                |buf| parse_data_field::<u8>(field, buf),
-            )?)),
-            UINT16 => Ok(inst::FieldValue::ArrayU16(parse_array(
-                array_size,
-                message_buf,
-                |buf| parse_data_field::<u16>(field, buf),
-            )?)),
-            UINT32 => Ok(inst::FieldValue::ArrayU32(parse_array(
-                array_size,
-                message_buf,
-                |buf| parse_data_field::<u32>(field, buf),
-            )?)),
-            UINT64 => Ok(inst::FieldValue::ArrayU64(parse_array(
-                array_size,
-                message_buf,
-                |buf| parse_data_field::<u64>(field, buf),
-            )?)),
-            INT8 => Ok(inst::FieldValue::ArrayI8(parse_array(
-                array_size,
-                message_buf,
-                |buf| parse_data_field::<i8>(field, buf),
-            )?)),
-            INT16 => Ok(inst::FieldValue::ArrayI16(parse_array(
-                array_size,
-                message_buf,
-                |buf| parse_data_field::<i16>(field, buf),
-            )?)),
-            INT32 => Ok(inst::FieldValue::ArrayI32(parse_array(
-                array_size,
-                message_buf,
-                |buf| parse_data_field::<i32>(field, buf),
-            )?)),
-            INT64 => Ok(inst::FieldValue::ArrayI64(parse_array(
-                array_size,
-                message_buf,
-                |buf| parse_data_field::<i64>(field, buf),
-            )?)),
-            FLOAT => Ok(inst::FieldValue::ArrayF32(parse_array(
-                array_size,
-                message_buf,
-                |buf| parse_data_field::<f32>(field, buf),
-            )?)),
-            DOUBLE => Ok(inst::FieldValue::ArrayF64(parse_array(
-                array_size,
-                message_buf,
-                |buf| parse_data_field::<f64>(field, buf),
-            )?)),
-            BOOL => Ok(inst::FieldValue::ArrayBool(parse_array(
-                array_size,
-                message_buf,
-                |buf| parse_data_field::<bool>(field, buf),
-            )?)),
-            CHAR => Ok(inst::FieldValue::ArrayChar(parse_array(
-                array_size,
-                message_buf,
-                |buf| parse_data_field::<char>(field, buf),
-            )?)),
+        Ok(match &field.r#type.base_type {
+            UINT8 => ArrayU8(parse_typed_array(array_size, field, message_buf)?),
+            UINT16 => ArrayU16(parse_typed_array(array_size, field, message_buf)?),
+            UINT32 => ArrayU32(parse_typed_array(array_size, field, message_buf)?),
+            UINT64 => ArrayU64(parse_typed_array(array_size, field, message_buf)?),
+            INT8 => ArrayI8(parse_typed_array(array_size, field, message_buf)?),
+            INT16 => ArrayI16(parse_typed_array(array_size, field, message_buf)?),
+            INT32 => ArrayI32(parse_typed_array(array_size, field, message_buf)?),
+            INT64 => ArrayI64(parse_typed_array(array_size, field, message_buf)?),
+            FLOAT => ArrayF32(parse_typed_array(array_size, field, message_buf)?),
+            DOUBLE => ArrayF64(parse_typed_array(array_size, field, message_buf)?),
+            BOOL => ArrayBool(parse_typed_array(array_size, field, message_buf)?),
+            CHAR => ArrayChar(parse_typed_array(array_size, field, message_buf)?),
             OTHER(type_name) => {
                 let child_format = &self.get_format(type_name)?;
-                Ok(inst::FieldValue::ArrayOther(parse_array(
-                    array_size,
-                    message_buf,
-                    |buf| self.parse_data_message_sub(child_format, buf),
-                )?))
+                ArrayOther(parse_array(array_size, message_buf, |buf| {
+                    self.parse_data_message_sub(child_format, buf)
+                })?)
             }
-        }
+        })
     }
 
     fn read_file_header(&mut self) -> Result<FileHeader, ULogError> {

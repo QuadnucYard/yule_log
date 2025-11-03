@@ -88,3 +88,18 @@ where
     }
     Ok(array)
 }
+
+pub fn parse_typed_array<T>(
+    array_size: usize,
+    field: &def::Field,
+    message_buf: &mut MessageBuf,
+) -> Result<Vec<T>, ULogError>
+where
+    T: ParseFromBuf,
+{
+    let mut array = Vec::with_capacity(array_size);
+    for _ in 0..array_size {
+        array.push(parse_data_field(field, message_buf)?);
+    }
+    Ok(array)
+}
