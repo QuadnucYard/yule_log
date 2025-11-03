@@ -468,6 +468,7 @@ impl<R: Read> ULogParser<R> {
             return Ok(None);
         };
 
+        let array_size = array_size.get();
         if array_size <= message_buf.len() {
             log::debug!("Encountered padding, and padding <= message.len(). Ok.");
 
@@ -525,7 +526,7 @@ impl<R: Read> ULogParser<R> {
                     }
                 })
             }
-            Some(array_size) => self.parse_array_field(field, array_size, message_buf),
+            Some(array_size) => self.parse_array_field(field, array_size.get(), message_buf),
         }
     }
 

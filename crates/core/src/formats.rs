@@ -1,3 +1,5 @@
+use nonmax::NonMaxUsize;
+
 use crate::errors::ULogError;
 use crate::message_buf::MessageBuf;
 use crate::model::def;
@@ -52,14 +54,17 @@ pub(crate) fn parse_field(token_list: &mut TokenList) -> Result<def::Field, ULog
         )))?,
     };
 
-    let mut array_size: Option<usize> = None;
+    let mut array_size: Option<NonMaxUsize> = None;
 
     if token_list.peek() == Some(&Token::LBrace) {
         array_size = match token_list.consume_three()? {
-            (Token::LBrace, Token::Number(size), Token::RBrace) => { Some(size) }
-            (token1, token2, token3) => { Err(ULogError::ParseError(format!(
+            (Token::LBrace, Token::Number(size), Token::RBrace) => match NonMaxUsize::new(size) {
+                Some(nz_size) => Some(nz_size),
+                None => Err(ULogError::ParseError(format!("Array size too large: {size}")))?,
+            },
+            (token1, token2, token3) => Err(ULogError::ParseError(format!(
                 "Invalid array definition. Expected [LBrace, Number, RBrace], got: [{token1:?}, {token2:?}, {token3:?}]"
-            )))? }
+            )))?,
         }
     }
 
@@ -139,7 +144,7 @@ mod tests {
                     name: "pet_ids".into(),
                     r#type: def::TypeExpr {
                         base_type: def::BaseType::UINT8,
-                        array_size: Some(8),
+                        array_size: Some(NonMaxUsize::new(8).unwrap()),
                     },
                 },
             ],

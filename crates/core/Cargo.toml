@@ -17,6 +17,7 @@ byteorder.workspace = true
 ecow.workspace = true
 thiserror.workspace = true
 log.workspace = true
+nonmax.workspace = true
 regex.workspace = true
 rustc-hash.workspace = true
 serde = { workspace = true, optional = true }
@@ -24,7 +25,7 @@ serde = { workspace = true, optional = true }
 [features]
 default = []
 macros = ["yule_log_macros"]
-serde = ["dep:serde", "ecow/serde"]
+serde = ["dep:serde", "ecow/serde", "nonmax/serde"]
 
 [dev-dependencies]
 env_logger.workspace = true

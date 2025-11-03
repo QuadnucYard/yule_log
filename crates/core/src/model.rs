@@ -191,6 +191,7 @@ pub mod msg {
 /// of the structures defined in this module.
 pub mod def {
     use ecow::EcoString;
+    use nonmax::NonMaxUsize;
 
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "serde", derive(serde::Serialize))]
@@ -211,7 +212,7 @@ pub mod def {
     #[cfg_attr(feature = "serde", derive(serde::Serialize))]
     pub struct TypeExpr {
         pub base_type: BaseType,
-        pub array_size: Option<usize>,
+        pub array_size: Option<NonMaxUsize>,
     }
 
     #[allow(clippy::upper_case_acronyms)]
