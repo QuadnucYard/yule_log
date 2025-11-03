@@ -21,11 +21,6 @@ impl<R: Read> DataStream<R> {
     }
 
     pub fn read_exact(&mut self, buf: &mut [u8]) -> Result<usize, ULogError> {
-        log::trace!(
-            "datastream read from:  [{:04X}-{:04X}]",
-            self.num_bytes_read,
-            self.num_bytes_read + buf.len()
-        );
         self.num_bytes_read += buf.len();
 
         match self.reader.read_exact(buf) {

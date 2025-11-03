@@ -374,7 +374,6 @@ impl<R: Read> ULogParser<R> {
         }
 
         let msg_type = ULogMessageType::from(self.datastream.read_u8()?);
-        log::trace!("MSG HEADER: {msg_size} {msg_type:?}");
 
         Ok(Some(ULogMessageHeader { msg_size, msg_type }))
     }
