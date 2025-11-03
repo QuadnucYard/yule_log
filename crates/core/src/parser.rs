@@ -421,6 +421,7 @@ impl<R: Read> ULogParser<R> {
             if field.name.starts_with("_padding") {
                 match field.r#type.array_size {
                     Some(array_size) => {
+                        let array_size = array_size.get();
                         match array_size.cmp(&message_buf.len()) {
                             std::cmp::Ordering::Less | std::cmp::Ordering::Equal => {
                                 log::debug!("Encountered padding, and padding <= message.len(). Ok.");
@@ -545,12 +546,13 @@ impl<R: Read> ULogParser<R> {
                     OTHER(type_name) => {
                         let child_format = &self.get_format(type_name)?;
                         Ok(inst::FieldValue::ScalarOther(
-                            self.parse_data_message_sub(child_format, message_buf)?,
+                            self.parse_data_message_sub(child_format, message_buf)?
+                                .into(),
                         ))
                     }
                 }
             }
-            Some(array_size) => self.parse_array_field(field, array_size, message_buf),
+            Some(array_size) => self.parse_array_field(field, array_size.get(), message_buf),
         }
     }
 

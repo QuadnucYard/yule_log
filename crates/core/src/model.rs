@@ -187,6 +187,8 @@ pub mod msg {
 /// See also the `inst` module, which defines structs that carry actual data, which are analogues
 /// of the structures defined in this module.
 pub mod def {
+    use nonmax::NonMaxUsize;
+
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "serde", derive(serde::Serialize))]
     pub struct Format {
@@ -194,9 +196,9 @@ pub mod def {
         pub fields: Vec<Field>,
         pub padding: usize,
     }
+
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "serde", derive(serde::Serialize))]
-    #[derive(Debug, Clone, PartialEq, Serialize)]
     pub struct Field {
         pub name: String,
         pub r#type: TypeExpr,
@@ -206,7 +208,7 @@ pub mod def {
     #[cfg_attr(feature = "serde", derive(serde::Serialize))]
     pub struct TypeExpr {
         pub base_type: BaseType,
-        pub array_size: Option<usize>,
+        pub array_size: Option<NonMaxUsize>,
     }
 
     #[allow(clippy::upper_case_acronyms)]
@@ -275,7 +277,7 @@ pub mod inst {
         ScalarF64(f64),
         ScalarBool(bool),
         ScalarChar(char),
-        ScalarOther(inst::Format),
+        ScalarOther(Box<inst::Format>),
 
         // Typed arrays
         ArrayU8(Vec<u8>),
@@ -310,7 +312,7 @@ impl inst::FieldValue {
             ArrayF64(v) => Some(v.iter().map(|&x| ScalarF64(x)).collect()),
             ArrayBool(v) => Some(v.iter().map(|&x| ScalarBool(x)).collect()),
             ArrayChar(v) => Some(v.iter().map(|&x| ScalarChar(x)).collect()),
-            ArrayOther(v) => Some(v.iter().map(|x| ScalarOther(x.clone())).collect()),
+            ArrayOther(v) => Some(v.iter().map(|x| ScalarOther(x.clone().into())).collect()),
             _ => None, // not an array
         }
     }
