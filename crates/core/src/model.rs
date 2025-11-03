@@ -232,7 +232,7 @@ pub mod def {
         DOUBLE,
         BOOL,
         CHAR,
-        OTHER(String),
+        OTHER(EcoString),
     }
 }
 
@@ -341,13 +341,13 @@ impl inst::Format {
         for field in &self.fields {
             let current_path = format!("{}/{}", path, field.name);
             if field.r#type.is_scalar() {
-                flattened.extend(self.flatten_data_type(current_path.clone(), &field.value));
+                flattened.extend(self.flatten_data_type(current_path, &field.value));
             } else {
-                let vec_of_scalars = &field.value.to_scalars().unwrap();
+                let vec_of_scalars = field.value.to_scalars().unwrap();
 
-                for (index, value) in vec_of_scalars.iter().enumerate() {
+                for (index, value) in vec_of_scalars.into_iter().enumerate() {
                     let array_path = format!("{current_path}.{index:02}");
-                    flattened.extend(self.flatten_data_type(array_path, value));
+                    flattened.extend(self.flatten_data_type(array_path, &value));
                 }
             }
         }

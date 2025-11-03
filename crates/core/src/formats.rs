@@ -99,7 +99,7 @@ impl def::BaseType {
             "float" => def::BaseType::FLOAT,
             "bool" => def::BaseType::BOOL,
             "char" => def::BaseType::CHAR,
-            _ => def::BaseType::OTHER(string.to_string()),
+            _ => def::BaseType::OTHER(string.into()),
         }
     }
 

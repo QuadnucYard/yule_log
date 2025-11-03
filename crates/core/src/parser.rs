@@ -26,7 +26,6 @@ use crate::tokenizer::TokenList;
 pub struct ULogParser<R: Read> {
     state: State,
     file_header: Option<FileHeader>,
-    _overridden_params: FxHashSet<String>,
     pub formats: FxHashMap<EcoString, Arc<def::Format>>,
     subscriptions: FxHashMap<u16, msg::Subscription>,
     message_name_with_multi_id: FxHashSet<EcoString>,
@@ -104,7 +103,6 @@ impl<R: Read> ULogParser<R> {
         Ok(ULogParser {
             state: State::HEADER,
             file_header: None,
-            _overridden_params: Default::default(),
             formats: Default::default(),
             subscriptions: Default::default(),
             message_name_with_multi_id: Default::default(),
@@ -120,7 +118,7 @@ impl<R: Read> ULogParser<R> {
 
     pub(crate) fn set_allowed_subscription_names(
         &mut self,
-        subscr_names: impl IntoIterator<Item = String>,
+        subscr_names: impl IntoIterator<Item = EcoString>,
     ) {
         self.subscription_filter = SubscriptionFilter::new(subscr_names);
     }
@@ -128,7 +126,10 @@ impl<R: Read> ULogParser<R> {
     /// Deprecated. Use `ULogParserBuilder::set_subscription_allow_list()` instead.
     /// This will be removed or made private in a future release.
     #[deprecated]
-    pub fn set_subscription_allow_list(&mut self, set: impl IntoIterator<Item = impl Into<EcoString>>) {
+    pub fn set_subscription_allow_list(
+        &mut self,
+        set: impl IntoIterator<Item = impl Into<EcoString>>,
+    ) {
         self.subscription_filter = SubscriptionFilter::new(set);
     }
 
