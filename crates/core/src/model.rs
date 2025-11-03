@@ -3,6 +3,8 @@ pub(crate) const MAGIC: [u8; 7] = [b'U', b'L', b'o', b'g', 0x01, 0x12, 0x35];
 pub mod msg {
     use std::rc::Rc;
 
+    use ecow::EcoString;
+
     use crate::errors::ULogError;
     use crate::model::MAGIC;
     use crate::model::{def, inst};
@@ -98,12 +100,12 @@ pub mod msg {
     pub struct Subscription {
         pub multi_id: u8,
         pub msg_id: u16,
-        pub message_name: String,
+        pub message_name: EcoString,
     }
 
     #[derive(Debug, Clone)]
     pub struct Info {
-        pub key: String,
+        pub key: EcoString,
         pub r#type: def::TypeExpr,
         pub value: inst::FieldValue,
     }
@@ -111,21 +113,21 @@ pub mod msg {
     #[derive(Debug, Clone)]
     pub struct MultiInfo {
         pub is_continued: bool,
-        pub key: String,
+        pub key: EcoString,
         pub r#type: def::TypeExpr,
         pub value: inst::FieldValue,
     }
 
     #[derive(Debug)]
     pub struct Parameter {
-        pub key: String,
+        pub key: EcoString,
         pub r#type: def::TypeExpr,
         pub value: inst::ParameterValue,
     }
 
     #[derive(Debug)]
     pub struct DefaultParameter {
-        pub key: String,
+        pub key: EcoString,
         pub default_types: u8,
         pub r#type: def::TypeExpr,
         pub value: inst::ParameterValue,
@@ -189,10 +191,12 @@ pub mod msg {
 /// See also the `inst` module, which defines structs that carry actual data, which are analogues
 /// of the structures defined in this module.
 pub mod def {
+    use ecow::EcoString;
+
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "serde", derive(serde::Serialize))]
     pub struct Format {
-        pub name: String,
+        pub name: EcoString,
         pub fields: Vec<Field>,
         pub padding: usize,
     }
@@ -200,7 +204,7 @@ pub mod def {
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "serde", derive(serde::Serialize))]
     pub struct Field {
-        pub name: String,
+        pub name: EcoString,
         pub r#type: TypeExpr,
     }
 
@@ -227,7 +231,7 @@ pub mod def {
         DOUBLE,
         BOOL,
         CHAR,
-        OTHER(String),
+        OTHER(EcoString),
     }
 }
 
@@ -239,13 +243,15 @@ pub mod def {
 pub mod inst {
     use std::rc::Rc;
 
+    use ecow::EcoString;
+
     use crate::model::def::TypeExpr;
     use crate::model::{def, inst};
 
     #[derive(Debug, Clone, PartialEq)]
     pub struct Format {
         pub timestamp: Option<u64>,
-        pub name: String,
+        pub name: EcoString,
         pub fields: Vec<Field>,
         pub multi_id_index: Option<u8>,
         pub def_format: Rc<def::Format>,
@@ -253,7 +259,7 @@ pub mod inst {
 
     #[derive(Debug, Clone, PartialEq)]
     pub struct Field {
-        pub name: String,
+        pub name: EcoString,
         pub r#type: TypeExpr,
         pub value: FieldValue,
     }

@@ -4,6 +4,7 @@ use std::io::Read;
 use std::rc::Rc;
 
 use byteorder::{ByteOrder, LittleEndian};
+use ecow::EcoString;
 
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -24,9 +25,9 @@ use crate::tokenizer::TokenList;
 pub struct ULogParser<R: Read> {
     state: State,
     file_header: Option<FileHeader>,
-    pub formats: FxHashMap<String, Rc<def::Format>>,
+    pub formats: FxHashMap<EcoString, Rc<def::Format>>,
     subscriptions: FxHashMap<u16, msg::Subscription>,
-    message_name_with_multi_id: FxHashSet<String>,
+    message_name_with_multi_id: FxHashSet<EcoString>,
     subscription_filter: SubscriptionFilter,
     datastream: DataStream<R>,
     max_bytes_to_read: Option<usize>,
@@ -37,12 +38,12 @@ pub struct ULogParser<R: Read> {
 
 #[derive(Default)]
 pub struct SubscriptionFilter {
-    allowed_subscription_names: Option<FxHashSet<String>>,
+    allowed_subscription_names: Option<FxHashSet<EcoString>>,
     allowed_subscription_ids: Option<FxHashSet<u16>>,
 }
 
 impl SubscriptionFilter {
-    pub fn new(subscr_names: impl IntoIterator<Item = impl Into<String>>) -> Self {
+    pub fn new(subscr_names: impl IntoIterator<Item = impl Into<EcoString>>) -> Self {
         let names = subscr_names.into_iter().map(Into::into).collect();
         Self {
             allowed_subscription_names: Some(names),
@@ -114,7 +115,7 @@ impl<R: Read> ULogParser<R> {
 
     pub(crate) fn set_allowed_subscription_names(
         &mut self,
-        subscr_names: impl IntoIterator<Item = String>,
+        subscr_names: impl IntoIterator<Item = impl Into<EcoString>>,
     ) {
         self.subscription_filter = SubscriptionFilter::new(subscr_names);
     }
@@ -124,7 +125,7 @@ impl<R: Read> ULogParser<R> {
     #[deprecated]
     pub fn set_subscription_allow_list(
         &mut self,
-        set: impl IntoIterator<Item = impl Into<String>>,
+        set: impl IntoIterator<Item = impl Into<EcoString>>,
     ) {
         self.subscription_filter = SubscriptionFilter::new(set);
     }
@@ -347,7 +348,7 @@ impl<R: Read> ULogParser<R> {
         let multi_id = message_buf.take_u8()?;
         let msg_id = message_buf.take_u16()?;
 
-        let message_name = String::from_utf8(message_buf.into_remaining_bytes())?;
+        let message_name = EcoString::from(str::from_utf8(message_buf.remaining_bytes())?);
 
         // Force a lookup of the format and return an error if not found.
         let _format = self.get_format(&message_name)?;
@@ -884,7 +885,7 @@ mod tests {
 
     impl<R: std::io::Read> ULogParser<R> {
         pub fn insert_format(&mut self, message_name: &str, format: def::Format) {
-            self.formats.insert(message_name.to_string(), format.into());
+            self.formats.insert(message_name.into(), format.into());
         }
     }
 
@@ -921,7 +922,7 @@ mod tests {
         parser.insert_format(
             "my_message",
             def::Format {
-                name: "".to_string(),
+                name: "".into(),
                 fields: vec![],
                 padding: 0,
             },

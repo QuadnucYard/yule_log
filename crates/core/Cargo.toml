@@ -14,6 +14,7 @@ publish = true
 yule_log_macros = { workspace = true, optional = true }
 
 byteorder.workspace = true
+ecow.workspace = true
 thiserror.workspace = true
 log.workspace = true
 regex.workspace = true
@@ -23,7 +24,7 @@ serde = { workspace = true, optional = true }
 [features]
 default = []
 macros = ["yule_log_macros"]
-serde = ["dep:serde"]
+serde = ["dep:serde", "ecow/serde"]
 
 [dev-dependencies]
 env_logger.workspace = true

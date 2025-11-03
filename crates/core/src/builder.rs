@@ -1,5 +1,6 @@
 use std::io::Read;
 
+use ecow::EcoString;
 use rustc_hash::FxHashSet;
 
 use crate::errors::ULogError;
@@ -10,7 +11,7 @@ pub struct ULogParserBuilder<R> {
     include_header: bool,
     include_timestamp: bool,
     include_padding: bool,
-    allowed_subscription_names: Option<FxHashSet<String>>,
+    allowed_subscription_names: Option<FxHashSet<EcoString>>,
 }
 
 impl<R: Read> ULogParserBuilder<R> {
@@ -60,9 +61,9 @@ impl<R: Read> ULogParserBuilder<R> {
     pub fn set_subscription_allow_list<I, S>(mut self, subs: I) -> Self
     where
         I: IntoIterator<Item = S>,
-        S: Into<String>,
+        S: Into<EcoString>,
     {
-        self.allowed_subscription_names = Some(subs.into_iter().map(|s| s.into()).collect());
+        self.allowed_subscription_names = Some(subs.into_iter().map(Into::into).collect());
         self
     }
 

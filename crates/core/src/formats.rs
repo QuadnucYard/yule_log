@@ -35,7 +35,7 @@ pub(crate) fn parse_format(message_buf: MessageBuf) -> Result<def::Format, ULogE
     }
 
     Ok(def::Format {
-        name: name.to_string(),
+        name: name.into(),
         fields,
         padding: 0,
     })
@@ -71,7 +71,7 @@ pub(crate) fn parse_field(token_list: &mut TokenList) -> Result<def::Field, ULog
     };
 
     Ok(def::Field {
-        name: field_name.to_string(),
+        name: field_name.into(),
         r#type: def::TypeExpr {
             base_type,
             array_size,
@@ -94,7 +94,7 @@ impl def::BaseType {
             "float" => def::BaseType::FLOAT,
             "bool" => def::BaseType::BOOL,
             "char" => def::BaseType::CHAR,
-            _ => def::BaseType::OTHER(string.to_string()),
+            _ => def::BaseType::OTHER(string.into()),
         }
     }
 
@@ -119,24 +119,24 @@ mod tests {
 
         // Assert the result is Ok and has the expected structure
         let expected_format = def::Format {
-            name: "my_format".to_string(),
+            name: "my_format".into(),
             fields: vec![
                 def::Field {
-                    name: "timestamp".to_string(),
+                    name: "timestamp".into(),
                     r#type: def::TypeExpr {
                         base_type: def::BaseType::UINT64,
                         array_size: None,
                     },
                 },
                 def::Field {
-                    name: "is_happy".to_string(),
+                    name: "is_happy".into(),
                     r#type: def::TypeExpr {
                         base_type: def::BaseType::BOOL,
                         array_size: None,
                     },
                 },
                 def::Field {
-                    name: "pet_ids".to_string(),
+                    name: "pet_ids".into(),
                     r#type: def::TypeExpr {
                         base_type: def::BaseType::UINT8,
                         array_size: Some(8),

@@ -192,7 +192,7 @@ pub fn derive_logged_struct(input: TokenStream) -> TokenStream {
         });
 
         quote! {{
-            let map: yule_log::reexport::FxHashMap<String, usize> =
+            let map: yule_log::reexport::FxHashMap<yule_log::reexport::EcoString, usize> =
                 format.fields.iter().enumerate()
                     .map(|(i, f)| (f.name.clone(), i))
                     .collect();

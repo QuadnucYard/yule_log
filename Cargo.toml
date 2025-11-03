@@ -11,6 +11,7 @@ yule_log = { version = "=0.3.3", path = "crates/core" }
 yule_log_macros = { version = "=0.3.3", path = "crates/macros" }
 
 byteorder = "1.5"
+ecow = "0.2"
 thiserror = "2.0"
 log = "0.4"
 regex = "1.11"
