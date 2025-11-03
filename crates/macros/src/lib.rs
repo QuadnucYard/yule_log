@@ -547,13 +547,13 @@ pub fn derive_logged_enum(input: TokenStream) -> TokenStream {
         #[allow(non_camel_case_types)]
         #[derive(Debug)]
         #[automatically_derived]
-        struct #builder_struct_name<R: std::io::Read> {
+        struct #builder_struct_name<R: std::io::Read + yule_log::SliceableReader> {
             reader: R,
             extra_allow_list: Vec<String>,
             forward_subscriptions: bool,
         }
 
-        impl<R: std::io::Read> #builder_struct_name<R> {
+        impl<R: std::io::Read + yule_log::SliceableReader> #builder_struct_name<R> {
             pub const HAS_FORWARD_OTHER: bool = #has_forward_other;
 
             pub fn new(reader: R) -> Self {
@@ -619,14 +619,14 @@ pub fn derive_logged_enum(input: TokenStream) -> TokenStream {
         #[doc = "Internal iterator struct driving the ULog parser and dispatching messages."]
         #[allow(non_camel_case_types)]
         #[automatically_derived]
-        struct #hidden_struct_name<R: std::io::Read> {
+        struct #hidden_struct_name<R: std::io::Read + yule_log::SliceableReader> {
             parser: yule_log::parser::ULogParser<R>,
             subs: yule_log::reexport::FxHashMap<u16, #accessor_enum_name>,
             forward_subscriptions: bool,
         }
 
         #[automatically_derived]
-        impl<R: std::io::Read> #hidden_struct_name<R> {
+        impl<R: std::io::Read + yule_log::SliceableReader> #hidden_struct_name<R> {
             fn new(reader: R) -> Result<Self, yule_log::errors::ULogError> {
                 let mut parser = yule_log::builder::ULogParserBuilder::new(reader)
                     .include_timestamp(true)
@@ -653,7 +653,7 @@ pub fn derive_logged_enum(input: TokenStream) -> TokenStream {
         }
 
         #[automatically_derived]
-        impl<R: std::io::Read> Iterator for #hidden_struct_name<R> {
+        impl<R: std::io::Read + yule_log::SliceableReader> Iterator for #hidden_struct_name<R> {
             type Item = Result<#enum_name, yule_log::errors::ULogError>;
 
             fn next(&mut self) -> Option<Self::Item> {
@@ -696,7 +696,7 @@ pub fn derive_logged_enum(input: TokenStream) -> TokenStream {
         #[automatically_derived]
         impl #enum_name {
             #[doc = "Returns an iterator over the selected ULOG messages from the reader."]
-            pub fn stream<R: std::io::Read>(
+            pub fn stream<R: std::io::Read + yule_log::SliceableReader>(
                 reader: R,
             ) -> Result<impl Iterator<Item = Result<Self, yule_log::errors::ULogError>>, yule_log::errors::ULogError>
             {
@@ -704,7 +704,7 @@ pub fn derive_logged_enum(input: TokenStream) -> TokenStream {
             }
 
             #[doc = "Returns a builder that allows the iterator to be customised."]
-            pub fn builder<R: std::io::Read>(reader: R) -> #builder_struct_name<R> {
+            pub fn builder<R: std::io::Read + yule_log::SliceableReader>(reader: R) -> #builder_struct_name<R> {
                 #builder_struct_name::new(reader)
             }
         }

@@ -17,6 +17,7 @@ byteorder.workspace = true
 ecow.workspace = true
 thiserror.workspace = true
 log.workspace = true
+memmap2.workspace = true
 nonmax.workspace = true
 regex.workspace = true
 rustc-hash.workspace = true

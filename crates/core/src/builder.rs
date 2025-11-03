@@ -1,10 +1,11 @@
 use std::io::Read;
+use std::path::Path;
 
 use ecow::EcoString;
 use rustc_hash::FxHashSet;
 
 use crate::errors::ULogError;
-use crate::parser::ULogParser;
+use crate::parser::{MmapReader, SliceableReader, ULogParser};
 
 pub struct ULogParserBuilder<R> {
     reader: R,
@@ -14,7 +15,7 @@ pub struct ULogParserBuilder<R> {
     allowed_subscription_names: Option<FxHashSet<EcoString>>,
 }
 
-impl<R: Read> ULogParserBuilder<R> {
+impl<R: Read + SliceableReader> ULogParserBuilder<R> {
     // Start the builder with a mandatory reader
     #[must_use]
     pub fn new(reader: R) -> Self {
@@ -85,5 +86,36 @@ impl<R: Read> ULogParserBuilder<R> {
             }
             Err(err) => Err(err),
         }
+    }
+}
+
+impl ULogParserBuilder<MmapReader> {
+    /// Creates a new builder from a file path using memory-mapped I/O.
+    /// This enables zero-copy parsing for better performance with large files.
+    ///
+    /// # Example
+    /// ```no_run
+    /// use yule_log::builder::ULogParserBuilder;
+    ///
+    /// let parser = ULogParserBuilder::from_file("sample.ulg")?
+    ///     .include_header(true)
+    ///     .build()?;
+    /// # Ok::<(), yule_log::errors::ULogError>(())
+    /// ```
+    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, ULogError> {
+        use memmap2::Mmap;
+        use std::fs::File;
+
+        let file = File::open(path)?;
+        let mmap = unsafe { Mmap::map(&file)? };
+        let reader = MmapReader::new(mmap);
+
+        Ok(ULogParserBuilder {
+            reader,
+            include_header: false,
+            include_timestamp: false,
+            include_padding: false,
+            allowed_subscription_names: None,
+        })
     }
 }

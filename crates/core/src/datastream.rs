@@ -6,7 +6,7 @@ use crate::errors::ULogError;
 
 #[derive(Debug)]
 pub struct DataStream<R: Read> {
-    reader: R,
+    pub(crate) reader: R,
     pub(crate) num_bytes_read: usize,
     pub(crate) eof: bool,
 }
