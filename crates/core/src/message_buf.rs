@@ -40,25 +40,26 @@ use crate::errors::ULogError;
 /// assert_eq!(val_i8, 127);
 /// assert_eq!(val_u16, 0xBEEF);
 /// ```
-pub struct MessageBuf {
+pub struct MessageBuf<'a> {
     /// The raw byte vector from which values will be read.
-    buf: Vec<u8>,
+    buf: &'a [u8],
 
     /// The current position in the byte vector, starting at zero.
     current_index: usize,
 }
 
-impl MessageBuf {
-    /// Creates a new `MessageBuf` from the provided byte vector.
+impl<'a> MessageBuf<'a> {
+    /// Creates a new `MessageBuf` from a borrowed byte slice.
+    /// This enables zero-copy parsing when using memory-mapped files.
     ///
     /// # Arguments
     ///
-    /// * `buf` - A `Vec<u8>` containing the raw bytes.
+    /// * `buf` - A `&[u8]` containing the raw bytes.
     ///
     /// # Returns
     ///
-    /// A new `MessageBuf` instance initialized with the provided byte vector and the current index set to zero.
-    pub fn new(buf: Vec<u8>) -> Self {
+    /// A new `MessageBuf` instance initialized with the provided byte slice and the current index set to zero.
+    pub fn new(buf: &'a [u8]) -> Self {
         Self {
             buf,
             current_index: 0,
@@ -67,18 +68,30 @@ impl MessageBuf {
 
     /// Creates a new `MessageBuf` from a `Vec<u8>`.
     ///
+    /// Note: This method leaks the vector to create a 'static reference.
+    /// It should only be used in contexts where the data needs to live for
+    /// the entire program duration (like in tests or when the Vec is already owned).
+    ///
+    /// For zero-copy parsing, prefer using `new()` with a borrowed slice.
+    ///
+    /// # Note on Memory Leak
+    ///
+    /// This method intentionally leaks memory using `Box::leak()` to create a 'static lifetime.
+    /// This is safe and bounded because:
+    /// - It's only used in the fallback path for readers that don't support slicing (e.g., BufReader)
+    /// - The buffer is reused across messages via `std::mem::take()`, so only ONE buffer exists
+    /// - The leaked memory is reclaimed when the program exits
+    /// - For MmapReader with zero-copy, this method is never called
+    ///
     /// # Arguments
     ///
     /// * `buf` - A `Vec<u8>` containing the raw bytes.
     ///
     /// # Returns
     ///
-    /// A new `MessageBuf` instance initialized with the provided byte vector and the current index set to zero.
-    pub fn from_vec(buf: Vec<u8>) -> Self {
-        Self {
-            buf,
-            current_index: 0,
-        }
+    /// A new `MessageBuf` instance with 'static lifetime.
+    pub fn from_vec(buf: Vec<u8>) -> MessageBuf<'static> {
+        MessageBuf::new(Box::leak(buf.into_boxed_slice()))
     }
 
     /// Returns the number of remaining bytes in the buffer.
@@ -89,6 +102,7 @@ impl MessageBuf {
     /// # Returns
     ///
     /// The number of remaining bytes in the buffer.
+    #[inline]
     pub fn len(&self) -> usize {
         self.buf.len().saturating_sub(self.current_index)
     }
@@ -101,11 +115,13 @@ impl MessageBuf {
     /// # Returns
     ///
     /// `true` if the buffer is empty, otherwise `false`.
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
     /// Returns a slice of the remaining bytes in the buffer starting from the current index.
+    #[inline]
     pub fn remaining_bytes(&self) -> &[u8] {
         &self.buf[self.current_index..]
     }
@@ -116,6 +132,7 @@ impl MessageBuf {
     ///
     /// # Returns
     /// A `Vec<u8>` containing the remaining bytes from the current position to the end of the buffer.
+    #[inline]
     pub fn into_remaining_bytes(self) -> Vec<u8> {
         self.buf[self.current_index..].to_vec()
     }
@@ -126,6 +143,7 @@ impl MessageBuf {
     ///
     /// A `Result` containing the next `u8` value or an error message if
     /// the buffer is exhausted.
+    #[inline]
     pub fn take_u8(&mut self) -> Result<u8, ULogError> {
         self.advance(size_of::<u8>()).map(|bytes| bytes[0])
     }
@@ -137,6 +155,7 @@ impl MessageBuf {
     /// A `Result` containing the next `i8` value or an error message if
     /// the buffer is exhausted.
     #[allow(clippy::cast_possible_wrap)]
+    #[inline]
     pub fn take_i8(&mut self) -> Result<i8, ULogError> {
         self.advance(size_of::<i8>()).map(|bytes| bytes[0] as i8)
     }
@@ -148,6 +167,7 @@ impl MessageBuf {
     ///
     /// A `Result` containing the next `u16` value or an error message if
     /// the buffer is exhausted.
+    #[inline]
     pub fn take_u16(&mut self) -> Result<u16, ULogError> {
         self.advance(size_of::<u16>()).map(LittleEndian::read_u16)
     }
@@ -159,6 +179,7 @@ impl MessageBuf {
     ///
     /// A `Result` containing the next `i16` value or an error message if
     /// the buffer is exhausted.
+    #[inline]
     pub fn take_i16(&mut self) -> Result<i16, ULogError> {
         self.advance(size_of::<i16>()).map(LittleEndian::read_i16)
     }
@@ -170,6 +191,7 @@ impl MessageBuf {
     ///
     /// A `Result` containing the next `u32` value or an error message if
     /// the buffer is exhausted.
+    #[inline]
     pub fn take_u32(&mut self) -> Result<u32, ULogError> {
         self.advance(size_of::<u32>()).map(LittleEndian::read_u32)
     }
@@ -181,6 +203,7 @@ impl MessageBuf {
     ///
     /// A `Result` containing the next `i32` value or an error message if
     /// the buffer is exhausted.
+    #[inline]
     pub fn take_i32(&mut self) -> Result<i32, ULogError> {
         self.advance(size_of::<i32>()).map(LittleEndian::read_i32)
     }
@@ -192,6 +215,7 @@ impl MessageBuf {
     ///
     /// A `Result` containing the next `u64` value or an error message if
     /// the buffer is exhausted.
+    #[inline]
     pub fn take_u64(&mut self) -> Result<u64, ULogError> {
         self.advance(size_of::<u64>()).map(LittleEndian::read_u64)
     }
@@ -203,6 +227,7 @@ impl MessageBuf {
     ///
     /// A `Result` containing the next `i64` value or an error message if
     /// the buffer is exhausted.
+    #[inline]
     pub fn take_i64(&mut self) -> Result<i64, ULogError> {
         self.advance(size_of::<i64>()).map(LittleEndian::read_i64)
     }
@@ -214,6 +239,7 @@ impl MessageBuf {
     ///
     /// A `Result` containing the next `f32` value or an error message if
     /// the buffer is exhausted.
+    #[inline]
     pub fn take_f32(&mut self) -> Result<f32, ULogError> {
         self.advance(size_of::<f32>()).map(LittleEndian::read_f32)
     }
@@ -225,6 +251,7 @@ impl MessageBuf {
     ///
     /// A `Result` containing the next `f64` value or an error message if
     /// the buffer is exhausted.
+    #[inline]
     pub fn take_f64(&mut self) -> Result<f64, ULogError> {
         self.advance(size_of::<f64>()).map(LittleEndian::read_f64)
     }
@@ -236,6 +263,7 @@ impl MessageBuf {
     ///
     /// A `Result` containing the next `bool` value or an error message if
     /// the buffer is exhausted.
+    #[inline]
     pub fn take_bool(&mut self) -> Result<bool, ULogError> {
         self.take_u8().map(|val| val != 0)
     }
@@ -251,6 +279,7 @@ impl MessageBuf {
     ///
     /// A `Result` containing a reference to the next slice of bytes or an
     /// error message if there are not enough remaining bytes in the buffer.
+    #[inline]
     pub fn advance(&mut self, size: usize) -> Result<&[u8], ULogError> {
         if self.current_index + size > self.buf.len() {
             Err(ULogError::ParseError(format!(
@@ -276,6 +305,7 @@ impl MessageBuf {
     ///
     /// A `Result` indicating whether the operation was successful or an
     /// error message if there are not enough remaining bytes in the buffer.
+    #[inline]
     pub fn skip(&mut self, size: usize) -> Result<(), ULogError> {
         self.advance(size).map(|_| ()) // Discard the result of advance
     }

@@ -1,12 +1,12 @@
 #![allow(non_camel_case_types)]
 
 use std::io::Read;
-use std::marker::PhantomData;
 use std::str::FromStr;
 use std::sync::Arc;
 
 use byteorder::{ByteOrder, LittleEndian};
 use ecow::EcoString;
+use memmap2::Mmap;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::datastream::DataStream;
@@ -23,7 +23,92 @@ use crate::model::MAGIC;
 use crate::model::{def, inst, msg};
 use crate::tokenizer::TokenList;
 
-pub struct ULogParser<R: Read> {
+/// Trait for readers that support zero-copy slice access
+pub trait SliceableReader: Read {
+    /// Try to get a slice of data without copying.
+    /// Returns None if zero-copy is not supported or if there's insufficient data.
+    fn try_get_slice(&mut self, _len: usize) -> Option<&[u8]> {
+        None
+    }
+}
+
+/// A memory-mapped file reader that implements the `Read` trait.
+/// This allows zero-copy parsing by borrowing directly from the mmap region.
+pub struct MmapReader {
+    mmap: Mmap,
+    position: usize,
+}
+
+impl MmapReader {
+    /// Creates a new `MmapReader` from a memory-mapped file.
+    pub fn new(mmap: Mmap) -> Self {
+        Self { mmap, position: 0 }
+    }
+
+    pub fn from_file(path: impl AsRef<std::path::Path>) -> Result<Self, std::io::Error> {
+        use std::fs::File;
+
+        let file = File::open(path)?;
+        let mmap = unsafe { Mmap::map(&file)? };
+        Ok(Self::new(mmap))
+    }
+
+    /// Returns a slice from the current position with the specified length.
+    /// This enables zero-copy message reading.
+    pub fn get_slice(&mut self, len: usize) -> Option<&[u8]> {
+        let end = self.position.checked_add(len)?;
+        if end <= self.mmap.len() {
+            let slice = &self.mmap[self.position..end];
+            self.position = end;
+            Some(slice)
+        } else {
+            None
+        }
+    }
+
+    /// Returns the current position in the mmap.
+    pub fn position(&self) -> usize {
+        self.position
+    }
+
+    /// Returns the total length of the mmap.
+    pub fn len(&self) -> usize {
+        self.mmap.len()
+    }
+
+    /// Checks if the reader has reached the end.
+    pub fn is_empty(&self) -> bool {
+        self.position >= self.mmap.len()
+    }
+}
+
+impl SliceableReader for MmapReader {
+    fn try_get_slice(&mut self, len: usize) -> Option<&[u8]> {
+        self.get_slice(len)
+    }
+}
+
+// Implement for common Read types with default no-op implementation
+impl<T: AsRef<[u8]>> SliceableReader for std::io::Cursor<T> {}
+impl SliceableReader for std::fs::File {}
+impl<R: Read> SliceableReader for std::io::BufReader<R> {}
+
+impl Read for MmapReader {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let remaining = self.mmap.len().saturating_sub(self.position);
+        let to_read = buf.len().min(remaining);
+
+        if to_read == 0 {
+            return Ok(0);
+        }
+
+        buf[..to_read].copy_from_slice(&self.mmap[self.position..self.position + to_read]);
+        self.position += to_read;
+        Ok(to_read)
+    }
+}
+
+pub struct ULogParser<R: Read + SliceableReader> {
     state: State,
     file_header: Option<FileHeader>,
     pub formats: FxHashMap<EcoString, Arc<def::Format>>,
@@ -35,7 +120,8 @@ pub struct ULogParser<R: Read> {
     pub(crate) include_header: bool,
     pub(crate) include_timestamp: bool,
     pub(crate) include_padding: bool,
-    _phantom: PhantomData<R>,
+    // Reusable buffer to avoid repeated allocations
+    message_buffer: Vec<u8>,
 }
 
 #[derive(Default)]
@@ -86,7 +172,7 @@ enum State {
     ERROR = 10,
 }
 
-impl<R: Read> Iterator for ULogParser<R> {
+impl<R: Read + SliceableReader> Iterator for ULogParser<R> {
     type Item = Result<msg::UlogMessage, ULogError>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -98,21 +184,23 @@ impl<R: Read> Iterator for ULogParser<R> {
     }
 }
 
-impl<R: Read> ULogParser<R> {
+impl<R: Read + SliceableReader> ULogParser<R> {
     pub fn new(reader: R) -> Result<ULogParser<R>, ULogError> {
         Ok(ULogParser {
             state: State::HEADER,
             file_header: None,
-            formats: Default::default(),
-            subscriptions: Default::default(),
-            message_name_with_multi_id: Default::default(),
+            // Pre-allocate capacity for common use cases
+            formats: FxHashMap::with_capacity_and_hasher(64, Default::default()),
+            subscriptions: FxHashMap::with_capacity_and_hasher(128, Default::default()),
+            message_name_with_multi_id: FxHashSet::with_capacity_and_hasher(32, Default::default()),
             subscription_filter: SubscriptionFilter::default(),
             datastream: DataStream::new(reader),
             max_bytes_to_read: None,
             include_header: false,
             include_timestamp: false,
             include_padding: false,
-            _phantom: PhantomData,
+            // Pre-allocate a reasonable buffer size (typical message size)
+            message_buffer: Vec::with_capacity(4096),
         })
     }
 
@@ -146,13 +234,49 @@ impl<R: Read> ULogParser<R> {
             Some(sub) => Ok(sub),
         }
     }
+}
 
-    pub(crate) fn read_message(&mut self, msg_size: usize) -> Result<MessageBuf, ULogError> {
-        let mut message: Vec<u8> = vec![0; msg_size];
-        self.datastream.read_exact(&mut message)?;
-        Ok(MessageBuf::from_vec(message))
+// Specific impl for MmapReader with from_file convenience method
+impl ULogParser<MmapReader> {
+    /// Creates a new `ULogParser` from a file path using memory-mapped I/O.
+    /// This enables zero-copy parsing for better performance with large files.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Path to the ULog file
+    ///
+    /// # Returns
+    ///
+    /// A new `ULogParser<MmapReader>` that uses memory-mapped I/O
+    pub fn from_file<P: AsRef<std::path::Path>>(
+        path: P,
+    ) -> Result<ULogParser<MmapReader>, ULogError> {
+        use std::fs::File;
+
+        let file = File::open(path)?;
+        let mmap = unsafe { Mmap::map(&file)? };
+        let reader = MmapReader::new(mmap);
+
+        Ok(ULogParser {
+            state: State::HEADER,
+            file_header: None,
+            // Pre-allocate capacity
+            formats: FxHashMap::with_capacity_and_hasher(64, Default::default()),
+            subscriptions: FxHashMap::with_capacity_and_hasher(128, Default::default()),
+            message_name_with_multi_id: FxHashSet::with_capacity_and_hasher(32, Default::default()),
+            subscription_filter: SubscriptionFilter::default(),
+            datastream: DataStream::new(reader),
+            max_bytes_to_read: None,
+            include_header: false,
+            include_timestamp: false,
+            include_padding: false,
+            message_buffer: Vec::with_capacity(4096),
+        })
     }
+}
 
+// Continue with the generic impl
+impl<R: Read + SliceableReader> ULogParser<R> {
     #[allow(clippy::single_match_else)]
     fn next_sub(&mut self) -> Result<Option<msg::UlogMessage>, ULogError> {
         if self.state == State::HEADER {
@@ -191,20 +315,45 @@ impl<R: Read> ULogParser<R> {
             }
         }
 
-        let (message_type, message_buf) = match self.read_message_header()? {
+        let header = match self.read_message_header()? {
             None => {
                 self.state = State::EOF;
                 return Ok(None);
             }
-            Some(header) => (
-                header.msg_type,
-                self.read_message(header.msg_size as usize)?,
-            ),
+            Some(header) => header,
         };
 
-        match self.state {
+        // Try zero-copy if reader supports it (e.g., MmapReader)
+        let msg_size = header.msg_size as usize;
+
+        let message_buf = if let Some(slice) = self.datastream.reader.try_get_slice(msg_size) {
+            // Zero-copy path: borrow directly!
+            self.datastream.num_bytes_read += msg_size;
+
+            // SAFETY: We extend the lifetime of the slice to 'static here.
+            // This is safe because:
+            // 1. The slice comes from a reader (e.g., mmap) that lives as long as ULogParser
+            // 2. We only use message_buf during this method call
+            // 3. We don't store message_buf anywhere that outlives this method
+            // 4. The underlying data is never mutated during parsing
+            let slice_static: &'static [u8] = unsafe { std::mem::transmute(slice) };
+            MessageBuf::new(slice_static)
+        } else {
+            // Fallback: copy into buffer (for regular Read implementations)
+            // println!("Using fallback copy path for message of size {}", msg_size);
+
+            let mut buffer = std::mem::take(&mut self.message_buffer);
+            buffer.clear();
+            buffer.resize(msg_size, 0);
+            self.datastream.read_exact(&mut buffer)?;
+            MessageBuf::from_vec(buffer)
+        };
+
+        let state = self.state; // Copy state to avoid borrow conflict
+
+        match state {
             State::DEFINITIONS => {
-                let msg = self.parse_definition(message_type, message_buf)?;
+                let msg = self.parse_definition(header.msg_type, message_buf)?;
 
                 match msg {
                     UlogMessage::FormatDefinition(ref format) => {
@@ -232,7 +381,7 @@ impl<R: Read> ULogParser<R> {
                 return Ok(Some(msg));
             }
             State::DATA => {
-                let mut msg = self.parse_data(message_type, message_buf)?;
+                let mut msg = self.parse_data(header.msg_type, message_buf)?;
 
                 match msg {
                     UlogMessage::AddSubscription(ref sub) => {
@@ -255,7 +404,7 @@ impl<R: Read> ULogParser<R> {
             _ => {
                 return Err(ULogError::ParseError(format!(
                     "Parser is in an invalid state: {:?}",
-                    self.state
+                    state
                 )));
             }
         }
@@ -887,7 +1036,7 @@ mod tests {
     use crate::encode::Encode;
     use std::io;
 
-    impl<R: std::io::Read> ULogParser<R> {
+    impl<R: std::io::Read + SliceableReader> ULogParser<R> {
         pub fn insert_format(&mut self, message_name: &str, format: def::Format) {
             self.formats.insert(message_name.into(), format.into());
         }

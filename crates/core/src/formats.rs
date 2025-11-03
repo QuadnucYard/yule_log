@@ -114,7 +114,7 @@ mod tests {
     #[test]
     fn test_parse_format() {
         let input = b"my_format:uint64_t timestamp; bool is_happy; uint8_t[8] pet_ids;";
-        let message_buf = MessageBuf::from_vec(input.to_vec());
+        let message_buf = MessageBuf::new(input);
 
         // Call the parse_format method
         let result = parse_format(message_buf);
@@ -155,7 +155,7 @@ mod tests {
     #[test]
     fn test_round_trip_format() {
         let input = b"my_format:uint64_t timestamp;custom_type custom_field;bool is_happy;custom_type2[4] custom_field;uint8_t[8] pet_ids;";
-        let message_buf = MessageBuf::from_vec(input.to_vec());
+        let message_buf = MessageBuf::new(input);
 
         let parsed_format = parse_format(message_buf).unwrap();
 

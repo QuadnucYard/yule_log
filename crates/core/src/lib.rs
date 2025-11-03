@@ -20,5 +20,9 @@ pub mod macro_utils;
 
 pub mod reexport {
     pub use ecow::EcoString;
+    pub use memmap2::Mmap;
     pub use rustc_hash::{FxHashMap, FxHashSet};
 }
+
+// Re-export MmapReader and SliceableReader for convenient use
+pub use parser::{MmapReader, SliceableReader};
