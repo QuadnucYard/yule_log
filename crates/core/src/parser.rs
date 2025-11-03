@@ -394,7 +394,7 @@ impl<R: Read> ULogParser<R> {
         let mut data_format = self.parse_data_message_sub(format, &mut message_buf)?;
 
         if self.message_name_with_multi_id.contains(&sub.message_name) {
-            Arc::make_mut(&mut data_format).multi_id_index = Some(sub.multi_id);
+            data_format.multi_id_index = Some(sub.multi_id);
         }
 
         // ⚠️ The timestamp for this message is the value of the `timestamp` field from the top-level `data_format`
@@ -417,47 +417,19 @@ impl<R: Read> ULogParser<R> {
         &self,
         format: &Arc<def::Format>,
         message_buf: &mut MessageBuf,
-    ) -> Result<Arc<inst::Format>, ULogError> {
-        let mut fields: Vec<inst::Field> = vec![];
+    ) -> Result<inst::Format, ULogError> {
+        let mut fields: Vec<inst::Field> = Vec::with_capacity(format.fields.len());
         let mut timestamp: Option<u64> = None;
 
         for field in &format.fields {
             // Easy case handle padding field.
             if field.name.starts_with("_padding") {
-                match field.r#type.array_size {
-                    Some(array_size) => {
-                        let array_size = array_size.get();
-                        match array_size.cmp(&message_buf.len()) {
-                            std::cmp::Ordering::Less | std::cmp::Ordering::Equal => {
-                                log::debug!("Encountered padding, and padding <= message.len(). Ok.");
-
-                                if self.include_padding {
-                                    let array = message_buf.advance(array_size)?.to_vec();
-                                    fields.push(inst::Field {
-                                        name: field.name.clone(),
-                                        r#type: field.r#type.clone(),
-                                        value: inst::FieldValue::ArrayU8(array),
-                                    });
-                                } else {
-                                    //Skip over the padding bytes.
-                                    message_buf.skip(array_size)?;
-                                }
-                            }
-                            std::cmp::Ordering::Greater => match message_buf.len() {
-                                0 => log::debug!("Encountered padding, and message.len() == 0. Ignoring as per ULOG spec."),
-                                _ => log::error!("Encountered padding, and padding > message.len(). Ignoring and hoping for the best"),
-                            },
-                        }
-                    }
-                    None => {
-                        log::warn!("Encountered padding, and type is scalar. Ignoring.");
-                    }
+                if let Some(field) = self.parse_padding(field, message_buf)? {
+                    fields.push(field);
                 }
-
-                continue;
             }
 
-            let value: inst::FieldValue = self.parse_field_value(field, message_buf)?;
+            let value = self.parse_field_value(field, message_buf)?;
 
             // ⚠️ Extract the timestamp field if present.
             // According to the ULOG spec, the timestamp for a LOGGED_DATA message is the value of
@@ -487,8 +459,42 @@ impl<R: Read> ULogParser<R> {
             // We have omitted it here so it can be filled later on if required.
             multi_id_index: None,
             def_format: format.clone(),
+        })
+    }
+
+    fn parse_padding(
+        &self,
+        field: &def::Field,
+        message_buf: &mut MessageBuf,
+    ) -> Result<Option<inst::Field>, ULogError> {
+        let Some(array_size) = field.r#type.array_size else {
+            log::warn!("Encountered padding, and type is scalar. Ignoring.");
+            return Ok(None);
+        };
+
+        let array_size = array_size.get();
+        if array_size <= message_buf.len() {
+            log::debug!("Encountered padding, and padding <= message.len(). Ok.");
+
+            if self.include_padding {
+                let array = message_buf.advance(array_size)?.to_vec();
+                return Ok(Some(inst::Field {
+                    name: field.name.clone(),
+                    r#type: field.r#type.clone(),
+                    value: inst::FieldValue::ArrayU8(array),
+                }));
+            } else {
+                //Skip over the padding bytes.
+                message_buf.skip(array_size)?;
+            }
+        } else {
+            match message_buf.len() {
+                0 => log::debug!("Encountered padding, and message.len() == 0. Ignoring as per ULOG spec."),
+                _ => log::error!("Encountered padding, and padding > message.len(). Ignoring and hoping for the best"),
+            }
         }
-        .into())
+
+        Ok(None)
     }
 
     fn parse_field_value(
@@ -516,8 +522,11 @@ impl<R: Read> ULogParser<R> {
                     BOOL => ScalarBool(parse_data_field(field, message_buf)?),
                     CHAR => ScalarChar(parse_data_field(field, message_buf)?),
                     OTHER(type_name) => {
-                        let child_format = &self.get_format(type_name)?;
-                        ScalarOther(self.parse_data_message_sub(child_format, message_buf)?)
+                        let child_format = self.get_format(type_name)?;
+                        ScalarOther(
+                            self.parse_data_message_sub(child_format, message_buf)?
+                                .into(),
+                        )
                     }
                 })
             }
@@ -858,8 +867,7 @@ impl From<ULogMessageType> for u8 {
 
 impl LoggedData {
     pub fn filter_fields(&mut self, include_timestamp: bool, include_padding: bool) {
-        // todo: arc
-        Arc::make_mut(&mut self.data).fields.retain(|field| {
+        self.data.fields.retain(|field| {
             if field.name == "timestamp" {
                 return include_timestamp;
             }

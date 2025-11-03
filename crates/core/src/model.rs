@@ -155,7 +155,7 @@ pub mod msg {
     pub struct LoggedData {
         pub timestamp: u64,
         pub msg_id: u16,
-        pub data: Arc<inst::Format>,
+        pub data: inst::Format,
     }
 
     #[derive(Debug, Copy, Clone)]
@@ -286,7 +286,7 @@ pub mod inst {
         ScalarF64(f64),
         ScalarBool(bool),
         ScalarChar(char),
-        ScalarOther(Arc<inst::Format>),
+        ScalarOther(Box<inst::Format>),
 
         // Typed arrays
         ArrayU8(Vec<u8>),
@@ -301,7 +301,7 @@ pub mod inst {
         ArrayF64(Vec<f64>),
         ArrayBool(Vec<bool>),
         ArrayChar(Vec<char>),
-        ArrayOther(Vec<Arc<inst::Format>>),
+        ArrayOther(Vec<inst::Format>),
     }
 }
 
@@ -321,7 +321,7 @@ impl inst::FieldValue {
             ArrayF64(v) => Some(v.iter().map(|&x| ScalarF64(x)).collect()),
             ArrayBool(v) => Some(v.iter().map(|&x| ScalarBool(x)).collect()),
             ArrayChar(v) => Some(v.iter().map(|&x| ScalarChar(x)).collect()),
-            ArrayOther(v) => Some(v.iter().map(|x| ScalarOther(x.clone())).collect()),
+            ArrayOther(v) => Some(v.iter().map(|x| ScalarOther(x.clone().into())).collect()),
             _ => None, // not an array
         }
     }
