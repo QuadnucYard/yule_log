@@ -1,10 +1,11 @@
 #![allow(non_camel_case_types)]
 
-use std::collections::{HashMap, HashSet};
 use std::io::Read;
 use std::rc::Rc;
 
 use byteorder::{ByteOrder, LittleEndian};
+
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::datastream::DataStream;
 use crate::errors::ULogError;
@@ -23,9 +24,9 @@ use crate::tokenizer::TokenList;
 pub struct ULogParser<R: Read> {
     state: State,
     file_header: Option<FileHeader>,
-    pub formats: HashMap<String, Rc<def::Format>>,
-    subscriptions: HashMap<u16, msg::Subscription>,
-    message_name_with_multi_id: HashSet<String>,
+    pub formats: FxHashMap<String, Rc<def::Format>>,
+    subscriptions: FxHashMap<u16, msg::Subscription>,
+    message_name_with_multi_id: FxHashSet<String>,
     subscription_filter: SubscriptionFilter,
     datastream: DataStream<R>,
     max_bytes_to_read: Option<usize>,
@@ -36,16 +37,16 @@ pub struct ULogParser<R: Read> {
 
 #[derive(Default)]
 pub struct SubscriptionFilter {
-    allowed_subscription_names: Option<HashSet<String>>,
-    allowed_subscription_ids: Option<HashSet<u16>>,
+    allowed_subscription_names: Option<FxHashSet<String>>,
+    allowed_subscription_ids: Option<FxHashSet<u16>>,
 }
 
 impl SubscriptionFilter {
-    pub fn new(subscr_names: impl IntoIterator<Item = String>) -> Self {
-        let names: HashSet<String> = subscr_names.into_iter().collect::<HashSet<_>>();
+    pub fn new(subscr_names: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        let names = subscr_names.into_iter().map(Into::into).collect();
         Self {
             allowed_subscription_names: Some(names),
-            allowed_subscription_ids: Some(HashSet::new()),
+            allowed_subscription_ids: Some(Default::default()),
         }
     }
 
@@ -99,9 +100,9 @@ impl<R: Read> ULogParser<R> {
         Ok(ULogParser {
             state: State::HEADER,
             file_header: None,
-            formats: HashMap::new(),
-            subscriptions: HashMap::new(),
-            message_name_with_multi_id: HashSet::new(),
+            formats: Default::default(),
+            subscriptions: Default::default(),
+            message_name_with_multi_id: Default::default(),
             subscription_filter: SubscriptionFilter::default(),
             datastream: DataStream::new(reader),
             max_bytes_to_read: None,
@@ -121,7 +122,10 @@ impl<R: Read> ULogParser<R> {
     /// Deprecated. Use `ULogParserBuilder::set_subscription_allow_list()` instead.
     /// This will be removed or made private in a future release.
     #[deprecated]
-    pub fn set_subscription_allow_list(&mut self, set: HashSet<String>) {
+    pub fn set_subscription_allow_list(
+        &mut self,
+        set: impl IntoIterator<Item = impl Into<String>>,
+    ) {
         self.subscription_filter = SubscriptionFilter::new(set);
     }
 

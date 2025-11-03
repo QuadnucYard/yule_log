@@ -17,6 +17,7 @@ byteorder.workspace = true
 thiserror.workspace = true
 log.workspace = true
 regex.workspace = true
+rustc-hash.workspace = true
 serde = { workspace = true, optional = true }
 
 [features]

@@ -17,3 +17,7 @@ pub use yule_log_macros::{ULogData, ULogMessages};
 
 #[cfg(feature = "macros")]
 pub mod macro_utils;
+
+pub mod reexport {
+    pub use rustc_hash::{FxHashMap, FxHashSet};
+}
