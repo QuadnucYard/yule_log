@@ -426,6 +426,7 @@ impl<R: Read> ULogParser<R> {
                 if let Some(field) = self.parse_padding(field, message_buf)? {
                     fields.push(field);
                 }
+                continue;
             }
 
             let value = self.parse_field_value(field, message_buf)?;
