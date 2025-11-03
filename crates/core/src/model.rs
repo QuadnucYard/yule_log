@@ -187,29 +187,31 @@ pub mod msg {
 /// See also the `inst` module, which defines structs that carry actual data, which are analogues
 /// of the structures defined in this module.
 pub mod def {
-    use serde::Serialize;
-
-    #[derive(Debug, Clone, PartialEq, Serialize)]
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "serde", derive(serde::Serialize))]
     pub struct Format {
         pub name: String,
         pub fields: Vec<Field>,
         pub padding: usize,
     }
-
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "serde", derive(serde::Serialize))]
     #[derive(Debug, Clone, PartialEq, Serialize)]
     pub struct Field {
         pub name: String,
         pub r#type: TypeExpr,
     }
 
-    #[derive(Debug, Clone, PartialEq, Serialize)]
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "serde", derive(serde::Serialize))]
     pub struct TypeExpr {
         pub base_type: BaseType,
         pub array_size: Option<usize>,
     }
 
     #[allow(clippy::upper_case_acronyms)]
-    #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[cfg_attr(feature = "serde", derive(serde::Serialize))]
     pub enum BaseType {
         UINT8,
         UINT16,
