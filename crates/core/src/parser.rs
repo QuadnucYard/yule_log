@@ -120,8 +120,6 @@ pub struct ULogParser<R: Read + SliceableReader> {
     pub(crate) include_header: bool,
     pub(crate) include_timestamp: bool,
     pub(crate) include_padding: bool,
-    // Reusable buffer to avoid repeated allocations
-    message_buffer: Vec<u8>,
 }
 
 #[derive(Default)]
@@ -190,17 +188,15 @@ impl<R: Read + SliceableReader> ULogParser<R> {
             state: State::HEADER,
             file_header: None,
             // Pre-allocate capacity for common use cases
-            formats: FxHashMap::with_capacity_and_hasher(64, Default::default()),
-            subscriptions: FxHashMap::with_capacity_and_hasher(128, Default::default()),
-            message_name_with_multi_id: FxHashSet::with_capacity_and_hasher(32, Default::default()),
+            formats: Default::default(),
+            subscriptions: Default::default(),
+            message_name_with_multi_id: Default::default(),
             subscription_filter: SubscriptionFilter::default(),
             datastream: DataStream::new(reader),
             max_bytes_to_read: None,
             include_header: false,
             include_timestamp: false,
             include_padding: false,
-            // Pre-allocate a reasonable buffer size (typical message size)
-            message_buffer: Vec::with_capacity(4096),
         })
     }
 
@@ -270,7 +266,6 @@ impl ULogParser<MmapReader> {
             include_header: false,
             include_timestamp: false,
             include_padding: false,
-            message_buffer: Vec::with_capacity(4096),
         })
     }
 }
@@ -340,11 +335,7 @@ impl<R: Read + SliceableReader> ULogParser<R> {
             MessageBuf::new(slice_static)
         } else {
             // Fallback: copy into buffer (for regular Read implementations)
-            // println!("Using fallback copy path for message of size {}", msg_size);
-
-            let mut buffer = std::mem::take(&mut self.message_buffer);
-            buffer.clear();
-            buffer.resize(msg_size, 0);
+            let mut buffer = vec![0; msg_size];
             self.datastream.read_exact(&mut buffer)?;
             MessageBuf::from_vec(buffer)
         };
