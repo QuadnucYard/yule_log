@@ -298,7 +298,7 @@ impl Encode for inst::FieldValue {
             ScalarF32(v) => writer.write_all(&v.to_le_bytes()),
             ScalarF64(v) => writer.write_all(&v.to_le_bytes()),
             ScalarBool(v) => writer.write_all(&[*v as u8]),
-            ScalarChar(c) => writer.write_all(&[*c as u8]),
+            ScalarChar(c) => writer.write_all(&[*c]),
             ScalarOther(fmt) => {
                 for sub_field in &fmt.fields {
                     sub_field.encode(writer)?;
@@ -369,7 +369,7 @@ impl Encode for inst::FieldValue {
             }
             ArrayChar(arr) => {
                 for c in arr {
-                    writer.write_all(&[*c as u8])?;
+                    writer.write_all(&[*c])?;
                 }
                 Ok(())
             }

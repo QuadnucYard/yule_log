@@ -36,7 +36,7 @@ impl std::fmt::Display for inst::FieldValue {
             FieldValue::ArrayBool(arr) => Ok(fmt_array(arr, f)?),
 
             FieldValue::ArrayChar(arr) => {
-                let s: String = arr.iter().collect();
+                let s = str::from_utf8(arr).unwrap();
                 write!(f, "\"{s}\"")
             }
 
@@ -132,7 +132,7 @@ impl fmt::Display for msg::Info {
             FieldValue::ArrayBool(arr) => fmt_array(arr, f)?,
 
             FieldValue::ArrayChar(arr) => {
-                let s: String = arr.iter().collect();
+                let s = str::from_utf8(arr).unwrap();
                 write!(f, "\"{s}\"")?;
             }
 
@@ -186,7 +186,7 @@ impl fmt::Display for msg::MultiInfo {
             FieldValue::ArrayBool(arr) => fmt_array(arr, f)?,
 
             FieldValue::ArrayChar(arr) => {
-                let s: String = arr.iter().collect();
+                let s = str::from_utf8(arr).unwrap();
                 write!(f, "\"{s}\"")?;
             }
 

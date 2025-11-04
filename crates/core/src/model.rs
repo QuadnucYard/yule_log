@@ -285,7 +285,7 @@ pub mod inst {
         ScalarF32(f32),
         ScalarF64(f64),
         ScalarBool(bool),
-        ScalarChar(char),
+        ScalarChar(u8),
         ScalarOther(Box<inst::Format>),
 
         // Typed arrays
@@ -300,7 +300,7 @@ pub mod inst {
         ArrayF32(Vec<f32>),
         ArrayF64(Vec<f64>),
         ArrayBool(Vec<bool>),
-        ArrayChar(Vec<char>),
+        ArrayChar(Vec<u8>),
         ArrayOther(Vec<inst::Format>),
     }
 }

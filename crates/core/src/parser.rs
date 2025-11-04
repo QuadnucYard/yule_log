@@ -658,18 +658,18 @@ impl<R: Read + SliceableReader> ULogParser<R> {
                 use inst::FieldValue::*;
 
                 Ok(match &field.r#type.base_type {
-                    UINT8 => ScalarU8(parse_data_field(field, message_buf)?),
-                    UINT16 => ScalarU16(parse_data_field(field, message_buf)?),
-                    UINT32 => ScalarU32(parse_data_field(field, message_buf)?),
-                    UINT64 => ScalarU64(parse_data_field(field, message_buf)?),
-                    INT8 => ScalarI8(parse_data_field(field, message_buf)?),
-                    INT16 => ScalarI16(parse_data_field(field, message_buf)?),
-                    INT32 => ScalarI32(parse_data_field(field, message_buf)?),
-                    INT64 => ScalarI64(parse_data_field(field, message_buf)?),
-                    FLOAT => ScalarF32(parse_data_field(field, message_buf)?),
-                    DOUBLE => ScalarF64(parse_data_field(field, message_buf)?),
-                    BOOL => ScalarBool(parse_data_field(field, message_buf)?),
-                    CHAR => ScalarChar(parse_data_field(field, message_buf)?),
+                    UINT8 => ScalarU8(parse_data_field(message_buf)?),
+                    UINT16 => ScalarU16(parse_data_field(message_buf)?),
+                    UINT32 => ScalarU32(parse_data_field(message_buf)?),
+                    UINT64 => ScalarU64(parse_data_field(message_buf)?),
+                    INT8 => ScalarI8(parse_data_field(message_buf)?),
+                    INT16 => ScalarI16(parse_data_field(message_buf)?),
+                    INT32 => ScalarI32(parse_data_field(message_buf)?),
+                    INT64 => ScalarI64(parse_data_field(message_buf)?),
+                    FLOAT => ScalarF32(parse_data_field(message_buf)?),
+                    DOUBLE => ScalarF64(parse_data_field(message_buf)?),
+                    BOOL => ScalarBool(parse_data_field(message_buf)?),
+                    CHAR => ScalarChar(parse_data_field(message_buf)?),
                     OTHER(type_name) => {
                         let child_format = self.get_format(type_name)?;
                         ScalarOther(
@@ -693,18 +693,18 @@ impl<R: Read + SliceableReader> ULogParser<R> {
         use inst::FieldValue::*;
 
         Ok(match &field.r#type.base_type {
-            UINT8 => ArrayU8(parse_typed_array(array_size, field, message_buf)?),
-            UINT16 => ArrayU16(parse_typed_array(array_size, field, message_buf)?),
-            UINT32 => ArrayU32(parse_typed_array(array_size, field, message_buf)?),
-            UINT64 => ArrayU64(parse_typed_array(array_size, field, message_buf)?),
-            INT8 => ArrayI8(parse_typed_array(array_size, field, message_buf)?),
-            INT16 => ArrayI16(parse_typed_array(array_size, field, message_buf)?),
-            INT32 => ArrayI32(parse_typed_array(array_size, field, message_buf)?),
-            INT64 => ArrayI64(parse_typed_array(array_size, field, message_buf)?),
-            FLOAT => ArrayF32(parse_typed_array(array_size, field, message_buf)?),
-            DOUBLE => ArrayF64(parse_typed_array(array_size, field, message_buf)?),
-            BOOL => ArrayBool(parse_typed_array(array_size, field, message_buf)?),
-            CHAR => ArrayChar(parse_typed_array(array_size, field, message_buf)?),
+            UINT8 => ArrayU8(parse_typed_array(array_size, message_buf)?),
+            UINT16 => ArrayU16(parse_typed_array(array_size, message_buf)?),
+            UINT32 => ArrayU32(parse_typed_array(array_size, message_buf)?),
+            UINT64 => ArrayU64(parse_typed_array(array_size, message_buf)?),
+            INT8 => ArrayI8(parse_typed_array(array_size, message_buf)?),
+            INT16 => ArrayI16(parse_typed_array(array_size, message_buf)?),
+            INT32 => ArrayI32(parse_typed_array(array_size, message_buf)?),
+            INT64 => ArrayI64(parse_typed_array(array_size, message_buf)?),
+            FLOAT => ArrayF32(parse_typed_array(array_size, message_buf)?),
+            DOUBLE => ArrayF64(parse_typed_array(array_size, message_buf)?),
+            BOOL => ArrayBool(parse_typed_array(array_size, message_buf)?),
+            CHAR => ArrayChar(parse_typed_array(array_size, message_buf)?),
             OTHER(type_name) => {
                 let child_format = &self.get_format(type_name)?;
                 ArrayOther(parse_array(array_size, message_buf, |buf| {
@@ -889,8 +889,8 @@ impl<R: Read + SliceableReader> ULogParser<R> {
             ));
         } else {
             let value: inst::ParameterValue = match field.r#type.base_type {
-                BaseType::INT32 => { inst::ParameterValue::INT32(parse_data_field::<i32>(&field, &mut message_buf)?) }
-                BaseType::FLOAT => { inst::ParameterValue::FLOAT(parse_data_field::<f32>(&field, &mut message_buf)?) }
+                BaseType::INT32 => { inst::ParameterValue::INT32(parse_data_field(&mut message_buf)?) }
+                BaseType::FLOAT => { inst::ParameterValue::FLOAT(parse_data_field(&mut message_buf)?) }
                 other => {
                     return Err(ULogError::UnknownParameterType(format!("Received default parameter message with unsupported type ({raw_key}->{other:?}). Ignoring.").to_owned()))
                 }
@@ -925,8 +925,8 @@ impl<R: Read + SliceableReader> ULogParser<R> {
             ));
         } else {
             let value: inst::ParameterValue = match field.r#type.base_type {
-                BaseType::INT32 => { inst::ParameterValue::INT32(parse_data_field::<i32>(&field, &mut message_buf)?) }
-                BaseType::FLOAT => { inst::ParameterValue::FLOAT(parse_data_field::<f32>(&field, &mut message_buf)?) }
+                BaseType::INT32 => { inst::ParameterValue::INT32(parse_data_field(&mut message_buf)?) }
+                BaseType::FLOAT => { inst::ParameterValue::FLOAT(parse_data_field(&mut message_buf)?) }
                 other => {
                     return Err(ULogError::UnknownParameterType(format!("Received default parameter message with unsupported type ({raw_key}->{other:?}). Ignoring.").to_owned()))
                 }
