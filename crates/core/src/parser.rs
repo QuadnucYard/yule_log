@@ -287,7 +287,6 @@ impl<R: Read> ULogParser<R> {
                     } else {
                         return Ok(UlogMessage::Ignored {
                             msg_type: message_type.into(),
-                            message_contents: message_buf.into_remaining_bytes(),
                         });
                     }
                 } else {
