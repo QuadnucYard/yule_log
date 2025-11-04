@@ -29,7 +29,6 @@ pub mod msg {
         },
         Ignored {
             msg_type: u8,
-            message_contents: Vec<u8>,
         },
     }
 
