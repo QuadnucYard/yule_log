@@ -190,7 +190,7 @@ For those requiring complete control over the parsing process, the original low 
 Example:
 
 ```rust
-let reader = BufReader::new(File::open(ulog_path.clone())?);
+let reader = BufReader::new(File::open(ulog_path)?);
 
 let parser = ULogParserBuilder::new(reader)
     .include_header(true)

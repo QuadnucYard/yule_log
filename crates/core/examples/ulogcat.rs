@@ -26,7 +26,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let path = Path::new(&args[1]);
 
     if path.is_file() {
-        process_file(path.into())?;
+        process_file(path)?;
     } else {
         eprintln!("Error: The path must specify a ulog file. Directories are not supported..");
         std::process::exit(1);
@@ -35,8 +35,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn process_file(ulog_path: Box<Path>) -> Result<(), Box<dyn Error>> {
-    let reader = BufReader::new(File::open(ulog_path.clone())?);
+fn process_file(ulog_path: &Path) -> Result<(), Box<dyn Error>> {
+    let reader = BufReader::new(File::open(ulog_path)?);
 
     let parser = ULogParserBuilder::new(reader)
         .include_header(true)

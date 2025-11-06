@@ -105,8 +105,7 @@ fn test_derive() -> Result<(), Box<dyn std::error::Error>> {
         },
     ];
 
-    let actual_positions: Vec<VehicleLocalPosition> = vehicle_positions.clone();
-    assert_eq!(actual_positions, expected_positions);
+    assert_eq!(vehicle_positions, expected_positions);
 
     let actual_actuator_outputs: Vec<ActuatorOutputs> = actuator_outputs
         .iter()

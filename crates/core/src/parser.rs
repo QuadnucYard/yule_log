@@ -124,17 +124,17 @@ impl<R: Read> ULogParser<R> {
         self.subscription_filter = SubscriptionFilter::new(set);
     }
 
-    pub fn get_format(&self, message_name: &str) -> Result<def::Format, ULogError> {
+    pub fn get_format(&self, message_name: &str) -> Result<&def::Format, ULogError> {
         match self.formats.get(message_name) {
             None => Err(UndefinedFormat(message_name.to_owned())),
-            Some(format) => Ok(format.clone()),
+            Some(format) => Ok(format),
         }
     }
 
-    pub fn get_subscription(&self, msg_id: u16) -> Result<msg::Subscription, ULogError> {
+    pub fn get_subscription(&self, msg_id: u16) -> Result<&msg::Subscription, ULogError> {
         match self.subscriptions.get(&msg_id) {
             None => Err(UndefinedSubscription(msg_id)),
-            Some(sub) => Ok(sub.clone()),
+            Some(sub) => Ok(sub),
         }
     }
 
@@ -275,9 +275,9 @@ impl<R: Read> ULogParser<R> {
                 let msg_id = message_buf.take_u16()?;
                 if let Ok(sub) = self.get_subscription(msg_id) {
                     if self.subscription_filter.is_allowed(sub.msg_id) {
-                        let logged_data = self.parse_data_message(&sub, message_buf)?;
+                        let logged_data = self.parse_data_message(sub, message_buf)?;
 
-                        return Ok(msg::UlogMessage::LoggedData(logged_data.clone()));
+                        return Ok(msg::UlogMessage::LoggedData(logged_data));
                     } else {
                         return Ok(UlogMessage::Ignored {
                             msg_type: message_type.into(),
@@ -381,7 +381,7 @@ impl<R: Read> ULogParser<R> {
             return Err(ULogError::MissingTimestamp);
         }
 
-        let mut data_format = self.parse_data_message_sub(&format, &mut message_buf)?;
+        let mut data_format = self.parse_data_message_sub(format, &mut message_buf)?;
 
         if self.message_name_with_multi_id.contains(&sub.message_name) {
             data_format.multi_id_index = Some(sub.multi_id);
@@ -513,7 +513,10 @@ impl<R: Read> ULogParser<R> {
                     CHAR => ScalarChar(parse_data_field(message_buf)?),
                     OTHER(type_name) => {
                         let child_format = &self.get_format(type_name)?;
-                        ScalarOther(self.parse_data_message_sub(child_format, message_buf)?)
+                        ScalarOther(
+                            self.parse_data_message_sub(child_format, message_buf)?
+                                .into(),
+                        )
                     }
                 })
             }

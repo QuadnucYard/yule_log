@@ -6,8 +6,8 @@ use std::path::Path;
 use yule_log::builder::ULogParserBuilder;
 use yule_log::model::msg::UlogMessage;
 
-fn process_file(ulog_path: Box<Path>) -> Result<(), Box<dyn Error>> {
-    let reader = BufReader::new(File::open(ulog_path.clone())?);
+fn process_file(ulog_path: &Path) -> Result<(), Box<dyn Error>> {
+    let reader = BufReader::new(File::open(ulog_path)?);
 
     let parser = ULogParserBuilder::new(reader)
         .include_header(true)
@@ -72,7 +72,7 @@ fn main() {
     let path = Path::new(&args[1]);
 
     if path.is_file() {
-        process_file(path.into()).unwrap();
+        process_file(path).unwrap();
     } else {
         eprintln!("Error: The path must specify a ulog file. Directories are not supported..");
         std::process::exit(1);
